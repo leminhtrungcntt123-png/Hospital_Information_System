@@ -10,7 +10,8 @@ public class Appointment
     public AppointmentSlot? Slot { get; set; }
     public int? RoomId { get; set; }
     public ClinicRoom? Room { get; set; }
-    public string Status { get; set; } = "PENDING";
+    public int StatusId { get; set; }
+    public AppointmentStatus Status { get; set; } = null!;
     public string BookingChannel { get; set; } = "WEB";
     public string VisitType { get; set; } = "SCHEDULED";
     public int PriorityLevel { get; set; } = 0;

@@ -18,6 +18,6 @@ public class MedicalRecord
 
     // Navigation properties
     public ICollection<LabOrder> LabOrders { get; set; } = new List<LabOrder>();
-    public Prescription? Prescription { get; set; }
+    public ICollection<Prescription> Prescriptions { get; set; } = new List<Prescription>();
     public ICollection<AccessLog> AccessLogs { get; set; } = new List<AccessLog>();
 }

@@ -13,24 +13,18 @@ namespace HIS.DAL.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "accounts",
+                name: "appointment_statuses",
                 columns: table => new
                 {
-                    id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    username = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
-                    password_hash = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
-                    role = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
-                    is_active = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
-                    failed_login_count = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
-                    locked_until = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()"),
-                    updated_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()")
+                    id = table.Column<int>(type: "integer", nullable: false),
+                    code = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    name = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    sort_order = table.Column<int>(type: "integer", nullable: false),
+                    is_terminal = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("pk_accounts", x => x.id);
-                    table.CheckConstraint("ck_accounts_role", "role IN ('ADMIN','DEPARTMENT_HEAD','DOCTOR','NURSE','PATIENT')");
+                    table.PrimaryKey("pk_appointment_statuses", x => x.id);
                 });
 
             migrationBuilder.CreateTable(
@@ -82,48 +76,30 @@ namespace HIS.DAL.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "services",
+                name: "roles",
                 columns: table => new
                 {
-                    id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    name = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
-                    type = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
-                    price = table.Column<decimal>(type: "numeric(12,2)", precision: 12, scale: 2, nullable: false, defaultValue: 0m),
-                    is_active = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true)
+                    id = table.Column<int>(type: "integer", nullable: false),
+                    code = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    name = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    description = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("pk_services", x => x.id);
-                    table.CheckConstraint("ck_services_type", "type IN ('EXAMINATION','LAB_TEST','IMAGING')");
+                    table.PrimaryKey("pk_roles", x => x.id);
                 });
 
             migrationBuilder.CreateTable(
-                name: "patients",
+                name: "service_types",
                 columns: table => new
                 {
-                    id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    account_id = table.Column<int>(type: "integer", nullable: false),
-                    full_name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    date_of_birth = table.Column<DateOnly>(type: "date", nullable: false),
-                    gender = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: true),
-                    national_id = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
-                    phone_number = table.Column<string>(type: "character varying(15)", maxLength: 15, nullable: false),
-                    address = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
-                    insurance_card_number = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
-                    created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()")
+                    id = table.Column<int>(type: "integer", nullable: false),
+                    code = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    name = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("pk_patients", x => x.id);
-                    table.CheckConstraint("ck_patients_gender", "gender IS NULL OR gender IN ('MALE','FEMALE','OTHER')");
-                    table.ForeignKey(
-                        name: "fk_patients_accounts_account_id",
-                        column: x => x.account_id,
-                        principalTable: "accounts",
-                        principalColumn: "id",
-                        onDelete: ReferentialAction.Restrict);
+                    table.PrimaryKey("pk_service_types", x => x.id);
                 });
 
             migrationBuilder.CreateTable(
@@ -143,6 +119,54 @@ namespace HIS.DAL.Migrations
                         name: "fk_clinic_rooms_departments_department_id",
                         column: x => x.department_id,
                         principalTable: "departments",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "accounts",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    username = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    password_hash = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    role_id = table.Column<int>(type: "integer", nullable: false),
+                    is_active = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
+                    failed_login_count = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
+                    locked_until = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()"),
+                    updated_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_accounts", x => x.id);
+                    table.ForeignKey(
+                        name: "fk_accounts_roles_role_id",
+                        column: x => x.role_id,
+                        principalTable: "roles",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "services",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    name = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
+                    service_type_id = table.Column<int>(type: "integer", nullable: false),
+                    price = table.Column<decimal>(type: "numeric(12,2)", precision: 12, scale: 2, nullable: false, defaultValue: 0m),
+                    is_active = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_services", x => x.id);
+                    table.ForeignKey(
+                        name: "fk_services_service_types_service_type_id",
+                        column: x => x.service_type_id,
+                        principalTable: "service_types",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Restrict);
                 });
@@ -229,6 +253,34 @@ namespace HIS.DAL.Migrations
                         principalTable: "departments",
                         principalColumn: "id",
                         onDelete: ReferentialAction.SetNull);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "patients",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    account_id = table.Column<int>(type: "integer", nullable: false),
+                    full_name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    date_of_birth = table.Column<DateOnly>(type: "date", nullable: false),
+                    gender = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: true),
+                    national_id = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
+                    phone_number = table.Column<string>(type: "character varying(15)", maxLength: 15, nullable: false),
+                    address = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    insurance_card_number = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
+                    created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_patients", x => x.id);
+                    table.CheckConstraint("ck_patients_gender", "gender IS NULL OR gender IN ('MALE','FEMALE','OTHER')");
+                    table.ForeignKey(
+                        name: "fk_patients_accounts_account_id",
+                        column: x => x.account_id,
+                        principalTable: "accounts",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -352,7 +404,7 @@ namespace HIS.DAL.Migrations
                     patient_id = table.Column<int>(type: "integer", nullable: false),
                     slot_id = table.Column<int>(type: "integer", nullable: true),
                     room_id = table.Column<int>(type: "integer", nullable: true),
-                    status = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false, defaultValue: "PENDING"),
+                    status_id = table.Column<int>(type: "integer", nullable: false),
                     booking_channel = table.Column<string>(type: "character varying(15)", maxLength: 15, nullable: false, defaultValue: "WEB"),
                     visit_type = table.Column<string>(type: "character varying(15)", maxLength: 15, nullable: false, defaultValue: "SCHEDULED"),
                     priority_level = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
@@ -368,7 +420,6 @@ namespace HIS.DAL.Migrations
                     table.PrimaryKey("pk_appointments", x => x.id);
                     table.CheckConstraint("ck_appointments_booking_channel", "booking_channel IN ('WEB','ON_SITE')");
                     table.CheckConstraint("ck_appointments_priority_level", "priority_level BETWEEN 0 AND 3");
-                    table.CheckConstraint("ck_appointments_status", "status IN ('PENDING','CONFIRMED','CHECKED_IN','READY_FOR_DOCTOR','IN_PROGRESS','COMPLETED','CANCELLED','NO_SHOW','EXPIRED')");
                     table.CheckConstraint("ck_appointments_visit_type", "visit_type IN ('SCHEDULED','WALK_IN')");
                     table.ForeignKey(
                         name: "fk_appointments_appointment_slots_slot_id",
@@ -376,6 +427,12 @@ namespace HIS.DAL.Migrations
                         principalTable: "appointment_slots",
                         principalColumn: "id",
                         onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
+                        name: "fk_appointments_appointment_statuses_status_id",
+                        column: x => x.status_id,
+                        principalTable: "appointment_statuses",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "fk_appointments_appointments_parent_appointment_id",
                         column: x => x.parent_appointment_id,
@@ -403,8 +460,8 @@ namespace HIS.DAL.Migrations
                     id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     appointment_id = table.Column<int>(type: "integer", nullable: false),
-                    old_status = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
-                    new_status = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    old_status_id = table.Column<int>(type: "integer", nullable: true),
+                    new_status_id = table.Column<int>(type: "integer", nullable: false),
                     performed_by = table.Column<int>(type: "integer", nullable: true),
                     changed_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()")
                 },
@@ -415,6 +472,18 @@ namespace HIS.DAL.Migrations
                         name: "fk_appointment_status_history_accounts_performed_by",
                         column: x => x.performed_by,
                         principalTable: "accounts",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
+                        name: "fk_appointment_status_history_appointment_statuses_new_status_",
+                        column: x => x.new_status_id,
+                        principalTable: "appointment_statuses",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "fk_appointment_status_history_appointment_statuses_old_status_",
+                        column: x => x.old_status_id,
+                        principalTable: "appointment_statuses",
                         principalColumn: "id",
                         onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
@@ -715,6 +784,11 @@ namespace HIS.DAL.Migrations
                 column: "medical_record_id");
 
             migrationBuilder.CreateIndex(
+                name: "ix_accounts_role_id",
+                table: "accounts",
+                column: "role_id");
+
+            migrationBuilder.CreateIndex(
                 name: "ix_accounts_username",
                 table: "accounts",
                 column: "username",
@@ -737,9 +811,25 @@ namespace HIS.DAL.Migrations
                 column: "appointment_id");
 
             migrationBuilder.CreateIndex(
+                name: "ix_appointment_status_history_new_status_id",
+                table: "appointment_status_history",
+                column: "new_status_id");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_appointment_status_history_old_status_id",
+                table: "appointment_status_history",
+                column: "old_status_id");
+
+            migrationBuilder.CreateIndex(
                 name: "ix_appointment_status_history_performed_by",
                 table: "appointment_status_history",
                 column: "performed_by");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_appointment_statuses_code",
+                table: "appointment_statuses",
+                column: "code",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "idx_appointments_patient",
@@ -747,9 +837,9 @@ namespace HIS.DAL.Migrations
                 column: "patient_id");
 
             migrationBuilder.CreateIndex(
-                name: "idx_appointments_status",
+                name: "idx_appointments_status_id",
                 table: "appointments",
-                column: "status");
+                column: "status_id");
 
             migrationBuilder.CreateIndex(
                 name: "ix_appointments_appointment_code",
@@ -904,7 +994,12 @@ namespace HIS.DAL.Migrations
             migrationBuilder.CreateIndex(
                 name: "ix_prescriptions_medical_record_id",
                 table: "prescriptions",
-                column: "medical_record_id",
+                column: "medical_record_id");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_roles_code",
+                table: "roles",
+                column: "code",
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -921,6 +1016,17 @@ namespace HIS.DAL.Migrations
                 name: "ix_schedule_exceptions_replacement_doctor_id",
                 table: "schedule_exceptions",
                 column: "replacement_doctor_id");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_service_types_code",
+                table: "service_types",
+                column: "code",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "ix_services_service_type_id",
+                table: "services",
+                column: "service_type_id");
 
             migrationBuilder.CreateIndex(
                 name: "ix_vital_signs_appointment_id",
@@ -989,10 +1095,16 @@ namespace HIS.DAL.Migrations
                 name: "medical_records");
 
             migrationBuilder.DropTable(
+                name: "service_types");
+
+            migrationBuilder.DropTable(
                 name: "appointments");
 
             migrationBuilder.DropTable(
                 name: "appointment_slots");
+
+            migrationBuilder.DropTable(
+                name: "appointment_statuses");
 
             migrationBuilder.DropTable(
                 name: "patients");
@@ -1008,6 +1120,9 @@ namespace HIS.DAL.Migrations
 
             migrationBuilder.DropTable(
                 name: "departments");
+
+            migrationBuilder.DropTable(
+                name: "roles");
         }
     }
 }

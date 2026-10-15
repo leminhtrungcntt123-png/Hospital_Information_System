@@ -105,11 +105,9 @@ namespace HIS.DAL.Migrations
                         .HasColumnType("character varying(255)")
                         .HasColumnName("password_hash");
 
-                    b.Property<string>("Role")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("role");
+                    b.Property<int>("RoleId")
+                        .HasColumnType("integer")
+                        .HasColumnName("role_id");
 
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAdd()
@@ -126,14 +124,14 @@ namespace HIS.DAL.Migrations
                     b.HasKey("Id")
                         .HasName("pk_accounts");
 
+                    b.HasIndex("RoleId")
+                        .HasDatabaseName("ix_accounts_role_id");
+
                     b.HasIndex("Username")
                         .IsUnique()
                         .HasDatabaseName("ix_accounts_username");
 
-                    b.ToTable("accounts", null, t =>
-                        {
-                            t.HasCheckConstraint("ck_accounts_role", "role IN ('ADMIN','DEPARTMENT_HEAD','DOCTOR','NURSE','PATIENT')");
-                        });
+                    b.ToTable("accounts", (string)null);
                 });
 
             modelBuilder.Entity("HIS.Domain.Appointment", b =>
@@ -201,13 +199,9 @@ namespace HIS.DAL.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("slot_id");
 
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasDefaultValue("PENDING")
-                        .HasColumnName("status");
+                    b.Property<int>("StatusId")
+                        .HasColumnType("integer")
+                        .HasColumnName("status_id");
 
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAdd()
@@ -242,16 +236,14 @@ namespace HIS.DAL.Migrations
                     b.HasIndex("SlotId")
                         .HasDatabaseName("ix_appointments_slot_id");
 
-                    b.HasIndex("Status")
-                        .HasDatabaseName("idx_appointments_status");
+                    b.HasIndex("StatusId")
+                        .HasDatabaseName("idx_appointments_status_id");
 
                     b.ToTable("appointments", null, t =>
                         {
                             t.HasCheckConstraint("ck_appointments_booking_channel", "booking_channel IN ('WEB','ON_SITE')");
 
                             t.HasCheckConstraint("ck_appointments_priority_level", "priority_level BETWEEN 0 AND 3");
-
-                            t.HasCheckConstraint("ck_appointments_status", "status IN ('PENDING','CONFIRMED','CHECKED_IN','READY_FOR_DOCTOR','IN_PROGRESS','COMPLETED','CANCELLED','NO_SHOW','EXPIRED')");
 
                             t.HasCheckConstraint("ck_appointments_visit_type", "visit_type IN ('SCHEDULED','WALK_IN')");
                         });
@@ -327,6 +319,44 @@ namespace HIS.DAL.Migrations
                         });
                 });
 
+            modelBuilder.Entity("HIS.Domain.AppointmentStatus", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("code");
+
+                    b.Property<bool>("IsTerminal")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_terminal");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("name");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.HasKey("Id")
+                        .HasName("pk_appointment_statuses");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasDatabaseName("ix_appointment_statuses_code");
+
+                    b.ToTable("appointment_statuses", (string)null);
+                });
+
             modelBuilder.Entity("HIS.Domain.AppointmentStatusHistory", b =>
                 {
                     b.Property<int>("Id")
@@ -346,16 +376,13 @@ namespace HIS.DAL.Migrations
                         .HasColumnName("changed_at")
                         .HasDefaultValueSql("now()");
 
-                    b.Property<string>("NewStatus")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("new_status");
+                    b.Property<int>("NewStatusId")
+                        .HasColumnType("integer")
+                        .HasColumnName("new_status_id");
 
-                    b.Property<string>("OldStatus")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("old_status");
+                    b.Property<int?>("OldStatusId")
+                        .HasColumnType("integer")
+                        .HasColumnName("old_status_id");
 
                     b.Property<int?>("PerformedBy")
                         .HasColumnType("integer")
@@ -366,6 +393,12 @@ namespace HIS.DAL.Migrations
 
                     b.HasIndex("AppointmentId")
                         .HasDatabaseName("ix_appointment_status_history_appointment_id");
+
+                    b.HasIndex("NewStatusId")
+                        .HasDatabaseName("ix_appointment_status_history_new_status_id");
+
+                    b.HasIndex("OldStatusId")
+                        .HasDatabaseName("ix_appointment_status_history_old_status_id");
 
                     b.HasIndex("PerformedBy")
                         .HasDatabaseName("ix_appointment_status_history_performed_by");
@@ -1108,7 +1141,6 @@ namespace HIS.DAL.Migrations
                         .HasName("pk_prescriptions");
 
                     b.HasIndex("MedicalRecordId")
-                        .IsUnique()
                         .HasDatabaseName("ix_prescriptions_medical_record_id");
 
                     b.ToTable("prescriptions", (string)null);
@@ -1159,6 +1191,39 @@ namespace HIS.DAL.Migrations
                         .HasDatabaseName("ix_prescription_items_prescription_id");
 
                     b.ToTable("prescription_items", (string)null);
+                });
+
+            modelBuilder.Entity("HIS.Domain.Role", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("code");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("description");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("name");
+
+                    b.HasKey("Id")
+                        .HasName("pk_roles");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasDatabaseName("ix_roles_code");
+
+                    b.ToTable("roles", (string)null);
                 });
 
             modelBuilder.Entity("HIS.Domain.ScheduleException", b =>
@@ -1260,19 +1325,45 @@ namespace HIS.DAL.Migrations
                         .HasDefaultValue(0m)
                         .HasColumnName("price");
 
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("type");
+                    b.Property<int>("ServiceTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnName("service_type_id");
 
                     b.HasKey("Id")
                         .HasName("pk_services");
 
-                    b.ToTable("services", null, t =>
-                        {
-                            t.HasCheckConstraint("ck_services_type", "type IN ('EXAMINATION','LAB_TEST','IMAGING')");
-                        });
+                    b.HasIndex("ServiceTypeId")
+                        .HasDatabaseName("ix_services_service_type_id");
+
+                    b.ToTable("services", (string)null);
+                });
+
+            modelBuilder.Entity("HIS.Domain.ServiceType", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("code");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("name");
+
+                    b.HasKey("Id")
+                        .HasName("pk_service_types");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasDatabaseName("ix_service_types_code");
+
+                    b.ToTable("service_types", (string)null);
                 });
 
             modelBuilder.Entity("HIS.Domain.VitalSigns", b =>
@@ -1366,6 +1457,18 @@ namespace HIS.DAL.Migrations
                     b.Navigation("MedicalRecord");
                 });
 
+            modelBuilder.Entity("HIS.Domain.Account", b =>
+                {
+                    b.HasOne("HIS.Domain.Role", "Role")
+                        .WithMany("Accounts")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_accounts_roles_role_id");
+
+                    b.Navigation("Role");
+                });
+
             modelBuilder.Entity("HIS.Domain.Appointment", b =>
                 {
                     b.HasOne("HIS.Domain.Appointment", "ParentAppointment")
@@ -1393,6 +1496,13 @@ namespace HIS.DAL.Migrations
                         .OnDelete(DeleteBehavior.SetNull)
                         .HasConstraintName("fk_appointments_appointment_slots_slot_id");
 
+                    b.HasOne("HIS.Domain.AppointmentStatus", "Status")
+                        .WithMany("Appointments")
+                        .HasForeignKey("StatusId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_appointments_appointment_statuses_status_id");
+
                     b.Navigation("ParentAppointment");
 
                     b.Navigation("Patient");
@@ -1400,6 +1510,8 @@ namespace HIS.DAL.Migrations
                     b.Navigation("Room");
 
                     b.Navigation("Slot");
+
+                    b.Navigation("Status");
                 });
 
             modelBuilder.Entity("HIS.Domain.AppointmentSlot", b =>
@@ -1432,6 +1544,19 @@ namespace HIS.DAL.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_appointment_status_history_appointments_appointment_id");
 
+                    b.HasOne("HIS.Domain.AppointmentStatus", "NewStatus")
+                        .WithMany("NewStatusHistories")
+                        .HasForeignKey("NewStatusId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_appointment_status_history_appointment_statuses_new_status_");
+
+                    b.HasOne("HIS.Domain.AppointmentStatus", "OldStatus")
+                        .WithMany("OldStatusHistories")
+                        .HasForeignKey("OldStatusId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_appointment_status_history_appointment_statuses_old_status_");
+
                     b.HasOne("HIS.Domain.Account", "Performer")
                         .WithMany("PerformedAppointmentHistories")
                         .HasForeignKey("PerformedBy")
@@ -1439,6 +1564,10 @@ namespace HIS.DAL.Migrations
                         .HasConstraintName("fk_appointment_status_history_accounts_performed_by");
 
                     b.Navigation("Appointment");
+
+                    b.Navigation("NewStatus");
+
+                    b.Navigation("OldStatus");
 
                     b.Navigation("Performer");
                 });
@@ -1664,8 +1793,8 @@ namespace HIS.DAL.Migrations
             modelBuilder.Entity("HIS.Domain.Prescription", b =>
                 {
                     b.HasOne("HIS.Domain.MedicalRecord", "MedicalRecord")
-                        .WithOne("Prescription")
-                        .HasForeignKey("HIS.Domain.Prescription", "MedicalRecordId")
+                        .WithMany("Prescriptions")
+                        .HasForeignKey("MedicalRecordId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_prescriptions_medical_records_medical_record_id");
@@ -1720,6 +1849,18 @@ namespace HIS.DAL.Migrations
                     b.Navigation("Doctor");
 
                     b.Navigation("ReplacementDoctor");
+                });
+
+            modelBuilder.Entity("HIS.Domain.Service", b =>
+                {
+                    b.HasOne("HIS.Domain.ServiceType", "ServiceType")
+                        .WithMany("Services")
+                        .HasForeignKey("ServiceTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_services_service_types_service_type_id");
+
+                    b.Navigation("ServiceType");
                 });
 
             modelBuilder.Entity("HIS.Domain.VitalSigns", b =>
@@ -1782,6 +1923,15 @@ namespace HIS.DAL.Migrations
                     b.Navigation("Appointments");
                 });
 
+            modelBuilder.Entity("HIS.Domain.AppointmentStatus", b =>
+                {
+                    b.Navigation("Appointments");
+
+                    b.Navigation("NewStatusHistories");
+
+                    b.Navigation("OldStatusHistories");
+                });
+
             modelBuilder.Entity("HIS.Domain.ClinicRoom", b =>
                 {
                     b.Navigation("AppointmentSlots");
@@ -1836,7 +1986,7 @@ namespace HIS.DAL.Migrations
 
                     b.Navigation("LabOrders");
 
-                    b.Navigation("Prescription");
+                    b.Navigation("Prescriptions");
                 });
 
             modelBuilder.Entity("HIS.Domain.Medication", b =>
@@ -1861,9 +2011,19 @@ namespace HIS.DAL.Migrations
                     b.Navigation("PrescriptionItems");
                 });
 
+            modelBuilder.Entity("HIS.Domain.Role", b =>
+                {
+                    b.Navigation("Accounts");
+                });
+
             modelBuilder.Entity("HIS.Domain.Service", b =>
                 {
                     b.Navigation("LabOrders");
+                });
+
+            modelBuilder.Entity("HIS.Domain.ServiceType", b =>
+                {
+                    b.Navigation("Services");
                 });
 #pragma warning restore 612, 618
         }

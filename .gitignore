@@ -45,3 +45,4 @@ appsettings.Development.json
 ## OS generated
 .DS_Store
 Thumbs.db
+init.md

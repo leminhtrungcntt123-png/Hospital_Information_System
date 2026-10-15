@@ -9,6 +9,9 @@ public class AppDbContext : DbContext
     {
     }
 
+    public DbSet<Role> Roles => Set<Role>();
+    public DbSet<ServiceType> ServiceTypes => Set<ServiceType>();
+    public DbSet<AppointmentStatus> AppointmentStatuses => Set<AppointmentStatus>();
     public DbSet<Account> Accounts => Set<Account>();
     public DbSet<Department> Departments => Set<Department>();
     public DbSet<ClinicRoom> ClinicRooms => Set<ClinicRoom>();
@@ -38,24 +41,62 @@ public class AppDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
+        // 0a. Role (lookup table — id do người dùng seed, không phải identity)
+        modelBuilder.Entity<Role>(b =>
+        {
+            b.ToTable("roles");
+            b.HasKey(r => r.Id);
+            b.Property(r => r.Id).ValueGeneratedNever();
+            b.Property(r => r.Code).HasMaxLength(20).IsRequired();
+            b.HasIndex(r => r.Code).IsUnique();
+            b.Property(r => r.Name).HasMaxLength(50).IsRequired();
+            b.Property(r => r.Description).HasMaxLength(255);
+        });
+
+        // 0b. ServiceType (lookup table)
+        modelBuilder.Entity<ServiceType>(b =>
+        {
+            b.ToTable("service_types");
+            b.HasKey(st => st.Id);
+            b.Property(st => st.Id).ValueGeneratedNever();
+            b.Property(st => st.Code).HasMaxLength(20).IsRequired();
+            b.HasIndex(st => st.Code).IsUnique();
+            b.Property(st => st.Name).HasMaxLength(50).IsRequired();
+        });
+
+        // 0c. AppointmentStatus (lookup table)
+        modelBuilder.Entity<AppointmentStatus>(b =>
+        {
+            b.ToTable("appointment_statuses");
+            b.HasKey(s => s.Id);
+            b.Property(s => s.Id).ValueGeneratedNever();
+            b.Property(s => s.Code).HasMaxLength(20).IsRequired();
+            b.HasIndex(s => s.Code).IsUnique();
+            b.Property(s => s.Name).HasMaxLength(50).IsRequired();
+            b.Property(s => s.SortOrder).IsRequired();
+            b.Property(s => s.IsTerminal).HasDefaultValue(false);
+        });
+
         // 1. Account
         modelBuilder.Entity<Account>(b =>
         {
-            b.ToTable("accounts", t =>
-            {
-                t.HasCheckConstraint("ck_accounts_role", "role IN ('ADMIN','DEPARTMENT_HEAD','DOCTOR','NURSE','PATIENT')");
-            });
+            b.ToTable("accounts");
 
             b.HasKey(a => a.Id);
             b.Property(a => a.Username).HasMaxLength(50).IsRequired();
             b.HasIndex(a => a.Username).IsUnique();
 
             b.Property(a => a.PasswordHash).HasMaxLength(255).IsRequired();
-            b.Property(a => a.Role).HasMaxLength(20).IsRequired();
+            b.Property(a => a.RoleId).IsRequired();
             b.Property(a => a.IsActive).HasDefaultValue(true);
             b.Property(a => a.FailedLoginCount).HasDefaultValue(0);
             b.Property(a => a.CreatedAt).HasDefaultValueSql("now()");
             b.Property(a => a.UpdatedAt).HasDefaultValueSql("now()");
+
+            b.HasOne(a => a.Role)
+                .WithMany(r => r.Accounts)
+                .HasForeignKey(a => a.RoleId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         // 2. Department
@@ -188,16 +229,18 @@ public class AppDbContext : DbContext
         // 9. Service
         modelBuilder.Entity<Service>(b =>
         {
-            b.ToTable("services", t =>
-            {
-                t.HasCheckConstraint("ck_services_type", "type IN ('EXAMINATION','LAB_TEST','IMAGING')");
-            });
+            b.ToTable("services");
 
             b.HasKey(s => s.Id);
             b.Property(s => s.Name).HasMaxLength(150).IsRequired();
-            b.Property(s => s.Type).HasMaxLength(20).IsRequired();
+            b.Property(s => s.ServiceTypeId).IsRequired();
             b.Property(s => s.Price).HasPrecision(12, 2).HasDefaultValue(0m);
             b.Property(s => s.IsActive).HasDefaultValue(true);
+
+            b.HasOne(s => s.ServiceType)
+                .WithMany(st => st.Services)
+                .HasForeignKey(s => s.ServiceTypeId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         // 10. InsurancePlan
@@ -305,7 +348,6 @@ public class AppDbContext : DbContext
         {
             b.ToTable("appointments", t =>
             {
-                t.HasCheckConstraint("ck_appointments_status", "status IN ('PENDING','CONFIRMED','CHECKED_IN','READY_FOR_DOCTOR','IN_PROGRESS','COMPLETED','CANCELLED','NO_SHOW','EXPIRED')");
                 t.HasCheckConstraint("ck_appointments_booking_channel", "booking_channel IN ('WEB','ON_SITE')");
                 t.HasCheckConstraint("ck_appointments_visit_type", "visit_type IN ('SCHEDULED','WALK_IN')");
                 t.HasCheckConstraint("ck_appointments_priority_level", "priority_level BETWEEN 0 AND 3");
@@ -315,7 +357,7 @@ public class AppDbContext : DbContext
             b.Property(a => a.AppointmentCode).HasMaxLength(30).IsRequired();
             b.HasIndex(a => a.AppointmentCode).IsUnique();
 
-            b.Property(a => a.Status).HasMaxLength(20).HasDefaultValue("PENDING").IsRequired();
+            b.Property(a => a.StatusId).IsRequired();
             b.Property(a => a.BookingChannel).HasMaxLength(15).HasDefaultValue("WEB").IsRequired();
             b.Property(a => a.VisitType).HasMaxLength(15).HasDefaultValue("SCHEDULED").IsRequired();
             b.Property(a => a.PriorityLevel).HasDefaultValue(0);
@@ -323,6 +365,11 @@ public class AppDbContext : DbContext
             b.Property(a => a.Reason).HasMaxLength(255);
             b.Property(a => a.CreatedAt).HasDefaultValueSql("now()");
             b.Property(a => a.UpdatedAt).HasDefaultValueSql("now()");
+
+            b.HasOne(a => a.Status)
+                .WithMany(s => s.Appointments)
+                .HasForeignKey(a => a.StatusId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             b.HasOne(a => a.Patient)
                 .WithMany(p => p.Appointments)
@@ -345,7 +392,7 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict);
 
             b.HasIndex(a => a.PatientId).HasDatabaseName("idx_appointments_patient");
-            b.HasIndex(a => a.Status).HasDatabaseName("idx_appointments_status");
+            b.HasIndex(a => a.StatusId).HasDatabaseName("idx_appointments_status_id");
         });
 
         // 15. AppointmentStatusHistory
@@ -353,9 +400,19 @@ public class AppDbContext : DbContext
         {
             b.ToTable("appointment_status_history");
             b.HasKey(h => h.Id);
-            b.Property(h => h.OldStatus).HasMaxLength(20);
-            b.Property(h => h.NewStatus).HasMaxLength(20).IsRequired();
+            b.Property(h => h.OldStatusId);
+            b.Property(h => h.NewStatusId).IsRequired();
             b.Property(h => h.ChangedAt).HasDefaultValueSql("now()");
+
+            b.HasOne(h => h.OldStatus)
+                .WithMany(s => s.OldStatusHistories)
+                .HasForeignKey(h => h.OldStatusId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            b.HasOne(h => h.NewStatus)
+                .WithMany(s => s.NewStatusHistories)
+                .HasForeignKey(h => h.NewStatusId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             b.HasOne(h => h.Appointment)
                 .WithMany(a => a.StatusHistories)
@@ -472,11 +529,9 @@ public class AppDbContext : DbContext
             b.Property(p => p.Note).HasMaxLength(255);
 
             b.HasOne(p => p.MedicalRecord)
-                .WithOne(m => m.Prescription)
-                .HasForeignKey<Prescription>(p => p.MedicalRecordId)
+                .WithMany(m => m.Prescriptions)
+                .HasForeignKey(p => p.MedicalRecordId)
                 .OnDelete(DeleteBehavior.Cascade);
-
-            b.HasIndex(p => p.MedicalRecordId).IsUnique();
         });
 
         // 21. PrescriptionItem

@@ -4,7 +4,8 @@ public class Service
 {
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
-    public string Type { get; set; } = string.Empty;
+    public int ServiceTypeId { get; set; }
+    public ServiceType ServiceType { get; set; } = null!;
     public decimal Price { get; set; } = 0;
     public bool IsActive { get; set; } = true;
 

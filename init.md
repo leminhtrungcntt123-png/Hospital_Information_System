@@ -64,8 +64,10 @@ namespace HIS.Domain). Property kiểu dữ liệu hợp lý với PostgreSQL
 (DateTime cho TIMESTAMP, decimal cho NUMERIC, string cho VARCHAR/TEXT, 
 int cho INTEGER, bool cho BOOLEAN). Thêm navigation property (quan hệ) hợp lý 
 giữa các entity dựa theo khóa ngoại.
-
-- Account (Id, Username, PasswordHash, Role, IsActive, FailedLoginCount, 
+- roles(Id,code name,decsription),
+- service_types(Id,code,name),
+- appointment_statuses(id, code ,name,sort_order,is_terminal),
+- Account (Id, Username, PasswordHash, roleID, IsActive, FailedLoginCount, 
   LockedUntil, CreatedAt, UpdatedAt)
 - Department (Id, Name, Description)
 - ClinicRoom (Id, DepartmentId, RoomName, RoomNumber)
@@ -76,7 +78,7 @@ giữa các entity dựa theo khóa ngoại.
 - Nurse (Id, AccountId, DepartmentId, FullName)
 - DepartmentHead (Id, AccountId, DepartmentId, FullName)
 - Medication (Id, Name, ActiveIngredient, Strength, Unit, Price, IsActive)
-- Service (Id, Name, Type, Price, IsActive)
+- Service (Id, Name, service_typeId, Price, IsActive)
 - InsurancePlan (Id, Name, CoveragePct, ReferralType)
 - DoctorSchedule (Id, DoctorId, RoomId, DayOfWeek, Shift, StartTime, 
   EndTime, SlotDurationMinutes, EffectiveFrom, EffectiveTo, IsActive)
@@ -84,10 +86,10 @@ giữa các entity dựa theo khóa ngoại.
   Reason, ApprovedBy, ApprovedAt, CreatedAt)
 - AppointmentSlot (Id, DoctorId, RoomId, StartTime, EndTime, Capacity, 
   BookedCount, Status, Version)
-- Appointment (Id, AppointmentCode, PatientId, SlotId, RoomId, Status, 
+- Appointment (Id, AppointmentCode, PatientId, SlotId, RoomId, StatusID, 
   BookingChannel, VisitType, PriorityLevel, QueueNumber, Reason, 
   HoldUntil, ParentAppointmentId, CreatedAt, UpdatedAt)
-- AppointmentStatusHistory (Id, AppointmentId, OldStatus, NewStatus, 
+- AppointmentStatusHistory (Id, AppointmentId, OldAppointment_StatusId, NewApointment_StatusId, 
   PerformedBy, ChangedAt)
 - VitalSigns (Id, AppointmentId, Pulse, SystolicBp, DiastolicBp, 
   Temperature, RespiratoryRate, Spo2, Weight, Height, RecordedBy, RecordedAt)
@@ -122,11 +124,34 @@ cấu hình Fluent API (KHÔNG dùng Data Annotation) cho các ràng buộc sau:
 
 Tham khảo đúng schema SQL đầy đủ sau để lấy chính xác kiểu dữ liệu, 
 độ dài VARCHAR, và danh sách giá trị CHECK constraint:
-
 -- =====================================================
 -- HIS DATABASE SCHEMA — PostgreSQL
 -- Hospital Information System
 -- =====================================================
+DROP SCHEMA public CASCADE;
+CREATE SCHEMA public;
+-- ─── LOOKUP TABLES (ĐẶT ĐẦU FILE) ────────────────────
+
+CREATE TABLE roles (
+    id          INTEGER PRIMARY KEY,
+    code        VARCHAR(20) NOT NULL UNIQUE,    -- 'ADMIN', 'DOCTOR'...
+    name        VARCHAR(50) NOT NULL,           -- 'Quản trị viên'
+    description VARCHAR(255)
+);
+
+CREATE TABLE service_types (
+    id          INTEGER PRIMARY KEY,
+    code        VARCHAR(20) NOT NULL UNIQUE,    -- 'LAB_TEST', 'EXAMINATION', 'IMAGING'
+    name        VARCHAR(50) NOT NULL            -- 'Xét nghiệm'
+);
+
+CREATE TABLE appointment_statuses (
+    id          INTEGER PRIMARY KEY,
+    code        VARCHAR(20) NOT NULL UNIQUE,    -- 'CONFIRMED'
+    name        VARCHAR(50) NOT NULL,           -- 'Đã xác nhận'
+    sort_order  INTEGER NOT NULL,
+    is_terminal BOOLEAN NOT NULL DEFAULT FALSE
+);
 
 -- ─── ACCOUNTS & STAFF ────────────────────────────────
 
@@ -134,8 +159,7 @@ CREATE TABLE accounts (
     id                  INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     username            VARCHAR(50) NOT NULL UNIQUE,
     password_hash       VARCHAR(255) NOT NULL,
-    role                VARCHAR(20) NOT NULL
-                         CHECK (role IN ('ADMIN','DEPARTMENT_HEAD','DOCTOR','NURSE','PATIENT')),
+    role_id             INTEGER NOT NULL REFERENCES roles(id),
     is_active           BOOLEAN NOT NULL DEFAULT TRUE,
     failed_login_count  INTEGER NOT NULL DEFAULT 0,
     locked_until        TIMESTAMP NULL,
@@ -157,16 +181,16 @@ CREATE TABLE clinic_rooms (
 );
 
 CREATE TABLE patients (
-    id                      INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    account_id              INTEGER NOT NULL UNIQUE REFERENCES accounts(id),
-    full_name               VARCHAR(100) NOT NULL,
-    date_of_birth            DATE NOT NULL,
-    gender                   VARCHAR(10) CHECK (gender IN ('MALE','FEMALE','OTHER')),
-    national_id              VARCHAR(20) UNIQUE,
-    phone_number             VARCHAR(15) NOT NULL,
-    address                  VARCHAR(255),
-    insurance_card_number    VARCHAR(20),
-    created_at               TIMESTAMP NOT NULL DEFAULT now()
+    id                        INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    account_id                INTEGER NOT NULL UNIQUE REFERENCES accounts(id),
+    full_name                 VARCHAR(100) NOT NULL,
+    date_of_birth             DATE NOT NULL,
+    gender                    VARCHAR(10) CHECK (gender IN ('MALE','FEMALE','OTHER')),
+    national_id               VARCHAR(20) UNIQUE,
+    phone_number              VARCHAR(15) NOT NULL,
+    address                   VARCHAR(255),
+    insurance_card_number     VARCHAR(20),
+    created_at                TIMESTAMP NOT NULL DEFAULT now()
 );
 
 CREATE TABLE doctors (
@@ -175,8 +199,8 @@ CREATE TABLE doctors (
     department_id               INTEGER NOT NULL REFERENCES departments(id),
     full_name                   VARCHAR(100) NOT NULL,
     specialty                   VARCHAR(100),
-    license_number              VARCHAR(30),
-    avg_consultation_minutes    INTEGER NOT NULL DEFAULT 15
+    license_number              VARCHAR(30),          -- Số chứng chỉ hành nghề
+    avg_consultation_minutes    INTEGER NOT NULL DEFAULT 15  -- Dùng tính ETA hàng đợi
 );
 
 CREATE TABLE nurses (
@@ -200,24 +224,23 @@ CREATE TABLE medications (
     name                VARCHAR(150) NOT NULL,
     active_ingredient   VARCHAR(150),
     strength            VARCHAR(50),
-    unit                VARCHAR(20) NOT NULL,
+    unit                VARCHAR(20) NOT NULL,       -- viên, chai, ống...
     price               NUMERIC(12,2) NOT NULL DEFAULT 0,
     is_active           BOOLEAN NOT NULL DEFAULT TRUE
 );
 
 CREATE TABLE services (
-    id          INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    name        VARCHAR(150) NOT NULL,
-    type        VARCHAR(20) NOT NULL
-                CHECK (type IN ('EXAMINATION','LAB_TEST','IMAGING')),
-    price       NUMERIC(12,2) NOT NULL DEFAULT 0,
-    is_active   BOOLEAN NOT NULL DEFAULT TRUE
+    id              INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name            VARCHAR(150) NOT NULL,
+    service_type_id INTEGER NOT NULL REFERENCES service_types(id),
+    price           NUMERIC(12,2) NOT NULL DEFAULT 0,
+    is_active       BOOLEAN NOT NULL DEFAULT TRUE
 );
 
 CREATE TABLE insurance_plans (
     id              INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    name            VARCHAR(100) NOT NULL,
-    coverage_pct    NUMERIC(5,2) NOT NULL,
+    name            VARCHAR(100) NOT NULL,       -- VD: "Đúng tuyến - 80%"
+    coverage_pct    NUMERIC(5,2) NOT NULL,        -- 80.00 / 95.00 / 100.00
     referral_type   VARCHAR(20) CHECK (referral_type IN ('IN_NETWORK','OUT_OF_NETWORK'))
 );
 
@@ -225,75 +248,72 @@ CREATE TABLE insurance_plans (
 
 CREATE TABLE doctor_schedules (
     id                      INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    doctor_id                INTEGER NOT NULL REFERENCES doctors(id),
-    room_id                  INTEGER NOT NULL REFERENCES clinic_rooms(id),
-    day_of_week              INTEGER CHECK (day_of_week BETWEEN 1 AND 7),
-    shift                    VARCHAR(10) NOT NULL CHECK (shift IN ('MORNING','AFTERNOON')),
-    start_time                TIME NOT NULL,
-    end_time                  TIME NOT NULL,
-    slot_duration_minutes     INTEGER NOT NULL DEFAULT 15,
-    effective_from             DATE NOT NULL,
-    effective_to               DATE,
-    is_active                  BOOLEAN NOT NULL DEFAULT TRUE
+    doctor_id               INTEGER NOT NULL REFERENCES doctors(id),
+    room_id                 INTEGER NOT NULL REFERENCES clinic_rooms(id),
+    day_of_week             INTEGER CHECK (day_of_week BETWEEN 1 AND 7), -- 1=CN..7=T7
+    shift                   VARCHAR(10) NOT NULL CHECK (shift IN ('MORNING','AFTERNOON')),
+    start_time              TIME NOT NULL,
+    end_time                TIME NOT NULL,
+    slot_duration_minutes   INTEGER NOT NULL DEFAULT 15,
+    effective_from          DATE NOT NULL,
+    effective_to            DATE,
+    is_active               BOOLEAN NOT NULL DEFAULT TRUE
 );
 
 CREATE TABLE schedule_exceptions (
     id                      INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    doctor_id                INTEGER NOT NULL REFERENCES doctors(id),
-    date                      DATE NOT NULL,
-    shift                     VARCHAR(10) CHECK (shift IN ('MORNING','AFTERNOON', NULL)),
-    type                      VARCHAR(20) NOT NULL
-                              CHECK (type IN ('LEAVE','TRAINING','SURGERY','SHIFT_SWAP')),
-    replacement_doctor_id     INTEGER REFERENCES doctors(id),
-    reason                    VARCHAR(255),
-    approved_by               INTEGER REFERENCES accounts(id),
-    approved_at                TIMESTAMP,
-    created_at                 TIMESTAMP NOT NULL DEFAULT now()
+    doctor_id               INTEGER NOT NULL REFERENCES doctors(id),
+    date                    DATE NOT NULL,
+    shift                   VARCHAR(10) CHECK (shift IN ('MORNING','AFTERNOON', NULL)),
+    type                    VARCHAR(20) NOT NULL
+                            CHECK (type IN ('LEAVE','TRAINING','SURGERY','SHIFT_SWAP')),
+    replacement_doctor_id   INTEGER REFERENCES doctors(id),
+    reason                  VARCHAR(255),
+    approved_by             INTEGER REFERENCES accounts(id),
+    approved_at             TIMESTAMP,
+    created_at              TIMESTAMP NOT NULL DEFAULT now()
 );
 
 CREATE TABLE appointment_slots (
-    id                  INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    doctor_id           INTEGER NOT NULL REFERENCES doctors(id),
-    room_id             INTEGER NOT NULL REFERENCES clinic_rooms(id),
-    start_time          TIMESTAMP NOT NULL,
-    end_time            TIMESTAMP NOT NULL,
-    capacity            INTEGER NOT NULL DEFAULT 1,
-    booked_count        INTEGER NOT NULL DEFAULT 0,
-    status              VARCHAR(15) NOT NULL DEFAULT 'AVAILABLE'
-                        CHECK (status IN ('AVAILABLE','FULL','BLOCKED')),
-    version             INTEGER NOT NULL DEFAULT 0,
+    id              INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    doctor_id       INTEGER NOT NULL REFERENCES doctors(id),
+    room_id         INTEGER NOT NULL REFERENCES clinic_rooms(id),
+    start_time      TIMESTAMP NOT NULL,
+    end_time        TIMESTAMP NOT NULL,
+    capacity        INTEGER NOT NULL DEFAULT 1,
+    booked_count    INTEGER NOT NULL DEFAULT 0,
+    status          VARCHAR(15) NOT NULL DEFAULT 'AVAILABLE'
+                    CHECK (status IN ('AVAILABLE','FULL','BLOCKED')),
+    version         INTEGER NOT NULL DEFAULT 0,    -- Optimistic locking
     CONSTRAINT uq_slot UNIQUE (doctor_id, start_time),
     CONSTRAINT ck_capacity CHECK (booked_count <= capacity)
 );
 
 CREATE TABLE appointments (
     id                      INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    appointment_code         VARCHAR(30) NOT NULL UNIQUE,
-    patient_id                INTEGER NOT NULL REFERENCES patients(id),
-    slot_id                   INTEGER REFERENCES appointment_slots(id),
-    room_id                   INTEGER REFERENCES clinic_rooms(id),
-    status                    VARCHAR(20) NOT NULL DEFAULT 'PENDING'
-                              CHECK (status IN
-                                  ('PENDING','CONFIRMED','CHECKED_IN','READY_FOR_DOCTOR',
-                                   'IN_PROGRESS','COMPLETED','CANCELLED','NO_SHOW','EXPIRED')),
-    booking_channel            VARCHAR(15) NOT NULL DEFAULT 'WEB'
-                              CHECK (booking_channel IN ('WEB','ON_SITE')),
-    visit_type                 VARCHAR(15) NOT NULL DEFAULT 'SCHEDULED'
-                              CHECK (visit_type IN ('SCHEDULED','WALK_IN')),
-    priority_level              INTEGER NOT NULL DEFAULT 0 CHECK (priority_level BETWEEN 0 AND 3),
-    queue_number                 VARCHAR(10),
-    reason                       VARCHAR(255),
-    hold_until                    TIMESTAMP,
-    parent_appointment_id          INTEGER REFERENCES appointments(id),
-    created_at                     TIMESTAMP NOT NULL DEFAULT now(),
-    updated_at                     TIMESTAMP NOT NULL DEFAULT now()
+    appointment_code        VARCHAR(30) NOT NULL UNIQUE,      -- HIS-20261015-0042
+    patient_id              INTEGER NOT NULL REFERENCES patients(id),
+    slot_id                 INTEGER REFERENCES appointment_slots(id),   -- NULL nếu walk-in chưa gán slot
+    room_id                 INTEGER REFERENCES clinic_rooms(id),
+    status_id               INTEGER NOT NULL REFERENCES appointment_statuses(id),
+    booking_channel         VARCHAR(15) NOT NULL DEFAULT 'WEB'
+                            CHECK (booking_channel IN ('WEB','ON_SITE')),
+    visit_type              VARCHAR(15) NOT NULL DEFAULT 'SCHEDULED'
+                            CHECK (visit_type IN ('SCHEDULED','WALK_IN')),
+    priority_level          INTEGER NOT NULL DEFAULT 0 CHECK (priority_level BETWEEN 0 AND 3),
+    queue_number            VARCHAR(10),          -- "A01" / "B03"
+    reason                  VARCHAR(255),
+    hold_until              TIMESTAMP,             -- Hạn giữ chỗ PENDING (BR-05)
+    parent_appointment_id   INTEGER REFERENCES appointments(id),  -- Dùng khi dời lịch
+    created_at              TIMESTAMP NOT NULL DEFAULT now(),
+    updated_at              TIMESTAMP NOT NULL DEFAULT now()
 );
 
 CREATE TABLE appointment_status_history (
     id              INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     appointment_id  INTEGER NOT NULL REFERENCES appointments(id),
-    old_status      VARCHAR(20),
-    new_status      VARCHAR(20) NOT NULL,
+    old_status_id   INTEGER REFERENCES appointment_statuses(id),
+    new_status_id   INTEGER NOT NULL REFERENCES appointment_statuses(id),
     performed_by    INTEGER REFERENCES accounts(id),
     changed_at      TIMESTAMP NOT NULL DEFAULT now()
 );
@@ -317,69 +337,69 @@ CREATE TABLE vital_signs (
 
 CREATE TABLE medical_records (
     id                          INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    appointment_id               INTEGER NOT NULL UNIQUE REFERENCES appointments(id),
-    doctor_id                    INTEGER NOT NULL REFERENCES doctors(id),
-    symptoms                     TEXT,
-    clinical_examination          TEXT,
-    primary_diagnosis_code        VARCHAR(20),
-    primary_diagnosis_desc        VARCHAR(255),
-    secondary_diagnosis           TEXT,
-    conclusion                    TEXT,
-    created_at                     TIMESTAMP NOT NULL DEFAULT now(),
-    updated_at                     TIMESTAMP NOT NULL DEFAULT now()
+    appointment_id              INTEGER NOT NULL UNIQUE REFERENCES appointments(id),
+    doctor_id                   INTEGER NOT NULL REFERENCES doctors(id),
+    symptoms                    TEXT,
+    clinical_examination        TEXT,
+    primary_diagnosis_code      VARCHAR(20),   -- Mã ICD-10
+    primary_diagnosis_desc      VARCHAR(255),
+    secondary_diagnosis         TEXT,
+    conclusion                  TEXT,
+    created_at                  TIMESTAMP NOT NULL DEFAULT now(),
+    updated_at                  TIMESTAMP NOT NULL DEFAULT now()
 );
 
 CREATE TABLE lab_orders (
     id                  INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     medical_record_id   INTEGER NOT NULL REFERENCES medical_records(id),
-    service_id           INTEGER NOT NULL REFERENCES services(id),
-    note                 VARCHAR(255),
-    status                VARCHAR(20) NOT NULL DEFAULT 'PENDING'
-                         CHECK (status IN ('PENDING','COMPLETED')),
-    created_at             TIMESTAMP NOT NULL DEFAULT now()
+    service_id          INTEGER NOT NULL REFERENCES services(id),
+    note                VARCHAR(255),
+    status              VARCHAR(20) NOT NULL DEFAULT 'PENDING'
+                        CHECK (status IN ('PENDING','COMPLETED')),
+    created_at          TIMESTAMP NOT NULL DEFAULT now()
 );
 
 CREATE TABLE lab_results (
-    id                  INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    order_id             INTEGER NOT NULL UNIQUE REFERENCES lab_orders(id),
-    result                TEXT,
-    performed_by           INTEGER REFERENCES accounts(id),
-    recorded_at             TIMESTAMP NOT NULL DEFAULT now()
+    id              INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    order_id        INTEGER NOT NULL UNIQUE REFERENCES lab_orders(id),
+    result          TEXT,
+    performed_by    INTEGER REFERENCES accounts(id),
+    recorded_at     TIMESTAMP NOT NULL DEFAULT now()
 );
 
 CREATE TABLE prescriptions (
     id                  INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     medical_record_id   INTEGER NOT NULL REFERENCES medical_records(id),
-    prescribed_date      DATE NOT NULL DEFAULT CURRENT_DATE,
-    note                  VARCHAR(255)
+    prescribed_date     DATE NOT NULL DEFAULT CURRENT_DATE,
+    note                VARCHAR(255)
 );
 
 CREATE TABLE prescription_items (
     id                  INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    prescription_id      INTEGER NOT NULL REFERENCES prescriptions(id),
-    medication_id         INTEGER NOT NULL REFERENCES medications(id),
-    dosage                VARCHAR(100),
-    quantity               INTEGER NOT NULL,
-    duration_days          INTEGER,
-    usage_instructions      VARCHAR(255)
+    prescription_id     INTEGER NOT NULL REFERENCES prescriptions(id),
+    medication_id       INTEGER NOT NULL REFERENCES medications(id),
+    dosage              VARCHAR(100),        -- "2 viên/lần, 2 lần/ngày"
+    quantity            INTEGER NOT NULL,
+    duration_days       INTEGER,
+    usage_instructions  VARCHAR(255)         -- "uống sau ăn"
 );
 
 -- ─── BILLING ───────────────────────────────────────────
 
 CREATE TABLE invoices (
     id                          INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    appointment_id                INTEGER NOT NULL UNIQUE REFERENCES appointments(id),
-    patient_id                    INTEGER NOT NULL REFERENCES patients(id),
-    insurance_plan_id              INTEGER REFERENCES insurance_plans(id),
-    total_amount                   NUMERIC(12,2) NOT NULL DEFAULT 0,
-    insurance_covered_amount       NUMERIC(12,2) NOT NULL DEFAULT 0,
-    patient_paid_amount            NUMERIC(12,2) NOT NULL DEFAULT 0,
-    status                         VARCHAR(20) NOT NULL DEFAULT 'UNPAID'
-                                   CHECK (status IN ('UNPAID','PAID')),
-    payment_method                  VARCHAR(20) CHECK (payment_method IN ('CASH','BANK_TRANSFER', NULL)),
-    cashier_id                      INTEGER REFERENCES accounts(id),
-    created_at                       TIMESTAMP NOT NULL DEFAULT now(),
-    paid_at                          TIMESTAMP
+    appointment_id              INTEGER NOT NULL UNIQUE REFERENCES appointments(id),
+    patient_id                  INTEGER NOT NULL REFERENCES patients(id),
+    insurance_plan_id           INTEGER REFERENCES insurance_plans(id),
+    total_amount                NUMERIC(12,2) NOT NULL DEFAULT 0,
+    insurance_covered_amount    NUMERIC(12,2) NOT NULL DEFAULT 0,
+    patient_paid_amount         NUMERIC(12,2) NOT NULL DEFAULT 0,
+    status                      VARCHAR(20) NOT NULL DEFAULT 'UNPAID'
+                                CHECK (status IN ('UNPAID','PAID')),
+    payment_method              VARCHAR(20) CHECK (payment_method IN ('CASH','BANK_TRANSFER', NULL)),
+    cashier_id                  INTEGER REFERENCES accounts(id),
+    created_at                  TIMESTAMP NOT NULL DEFAULT now(),
+    paid_at                     TIMESTAMP
 );
 
 CREATE TABLE invoice_items (
@@ -396,7 +416,7 @@ CREATE TABLE access_logs (
     id                  INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     account_id          INTEGER NOT NULL REFERENCES accounts(id),
     medical_record_id   INTEGER REFERENCES medical_records(id),
-    action              VARCHAR(50) NOT NULL,
+    action              VARCHAR(50) NOT NULL,   -- VD: "VIEW_RECORD", "EDIT_RECORD"
     occurred_at         TIMESTAMP NOT NULL DEFAULT now(),
     ip_address          VARCHAR(45)
 );
@@ -405,10 +425,9 @@ CREATE TABLE access_logs (
 
 CREATE INDEX idx_slots_doctor_date ON appointment_slots (doctor_id, start_time);
 CREATE INDEX idx_appointments_patient ON appointments (patient_id);
-CREATE INDEX idx_appointments_status ON appointments (status);
+CREATE INDEX idx_appointments_status_id ON appointments (status_id);
 CREATE INDEX idx_records_appointment ON medical_records (appointment_id);
 CREATE INDEX idx_access_logs_account ON access_logs (account_id);
-
 ## 6. DEPENDENCY INJECTION
 
 Trong HIS.WinForms/Program.cs: dựng Host (Generic Host hoặc 
