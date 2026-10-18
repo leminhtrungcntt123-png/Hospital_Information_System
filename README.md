@@ -14,7 +14,7 @@ Hệ thống hỗ trợ đặt lịch khám và quản lý hồ sơ bệnh án (
 - **tests/HIS.Tests**: Unit Test dự án (xUnit, Moq, InMemory EF Core).
 
 ## Yêu cầu môi trường
-- .NET 8 SDK
+- .NET 10 SDK
 - PostgreSQL (hoặc Docker chạy Postgres)
 
 ## Hướng dẫn cài đặt & chạy Migration
