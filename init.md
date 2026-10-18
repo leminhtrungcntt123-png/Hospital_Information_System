@@ -1,4 +1,4 @@
-Tôi cần bạn dựng khung (scaffold) cho một dự án .NET 8 tên là HIS 
+Tôi cần bạn dựng khung (scaffold) cho một dự án .NET 10 tên là HIS 
 (Hospital Information System - Hệ thống hỗ trợ đặt lịch khám và quản lý hồ sơ bệnh án).
 Đây là đồ án môn học, dùng cho 2 môn: Lập trình trực quan (WinForms) và Lập trình Web,
 dùng chung 1 tầng nghiệp vụ. Làm theo ĐÚNG cấu trúc và yêu cầu dưới đây, không tự ý đổi.
@@ -13,14 +13,14 @@ HIS/
 ├─ README.md
 ├─ .github/workflows/ci.yml
 ├─ src/
-│ ├─ HIS.Domain/ (Class Library, .NET 8)
-│ ├─ HIS.DAL/ (Class Library, .NET 8)
-│ ├─ HIS.BLL/ (Class Library, .NET 8)
-│ ├─ HIS.WinForms/ (Windows Forms App, .NET 8, chỉ chạy trên Windows)
-│ ├─ HIS.WebApi/ (ASP.NET Core Web API, .NET 8)
-│ └─ HIS.Web/ (ASP.NET Core Web App - Razor Pages, .NET 8)
+│ ├─ HIS.Domain/ (Class Library, .NET 10)
+│ ├─ HIS.DAL/ (Class Library, .NET 10)
+│ ├─ HIS.BLL/ (Class Library, .NET 10)
+│ ├─ HIS.WinForms/ (Windows Forms App, .NET 10, chỉ chạy trên Windows)
+│ ├─ HIS.WebApi/ (ASP.NET Core Web API, .NET 10)
+│ └─ HIS.Web/ (ASP.NET Core Web App - Razor Pages, .NET 10)
 └─ tests/
-└─ HIS.Tests/ (xUnit Test Project, .NET 8)
+└─ HIS.Tests/ (xUnit Test Project, .NET 10)
 
 
 Thiết lập Project Reference (dùng `dotnet add reference`):
@@ -448,7 +448,7 @@ cho local dev.
 ## 7. CI: .github/workflows/ci.yml
 
 Tạo GitHub Actions workflow: chạy trên push và pull_request, dùng 
-runs-on: windows-latest (vì có WinForms), setup .NET 8, restore, 
+runs-on: windows-latest (vì có WinForms), setup .NET 10, restore, 
 build toàn bộ solution, chạy dotnet test cho HIS.Tests.
 
 ## 8. .gitignore
