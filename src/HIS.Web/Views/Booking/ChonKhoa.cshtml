@@ -1,0 +1,67 @@
+@* Bước 1: Chọn chuyên khoa *@
+@model ChonKhoaViewModel
+@{
+    Layout = "_BookingLayout";
+    ViewData["Title"] = "Chọn chuyên khoa";
+    ViewData["Step"] = 1;
+    ViewData["BackUrl"] = Url.Action("Index", "Booking");
+
+    var selected = Model.Departments.FirstOrDefault(d => d.Id == Model.SelectedDepartmentId);
+}
+
+<form asp-action="ChonKhoa" method="post" id="khoa-form">
+    <input type="hidden" name="departmentId" id="field-department" value="@Model.SelectedDepartmentId" />
+
+    <section class="booking-content">
+        <div class="content-head">
+            <div>
+                <div class="eyebrow">BƯỚC 1 / 4</div>
+                <div class="page-title">Bạn cần khám chuyên khoa nào?</div>
+                <p>Chọn một chuyên khoa phù hợp. Bệnh viện sẽ phân công bác sĩ theo lịch trực.</p>
+            </div>
+        </div>
+
+        <partial name="_ErrorAlert" />
+
+        <label class="search-box">
+            <i data-lucide="search"></i>
+            <input type="search" id="khoa-search" placeholder="Tìm kiếm chuyên khoa..." autocomplete="off" />
+        </label>
+
+        <div class="specialty-grid" id="khoa-grid">
+            @foreach (var d in Model.Departments)
+            {
+                var isSelected = d.Id == Model.SelectedDepartmentId;
+                <button type="button" class="specialty-card @(isSelected ? "selected" : "")"
+                        data-id="@d.Id" data-name="@d.Name" disabled="@(d.SlotsThisWeek == 0)">
+                    <div class="specialty-icon"><i data-lucide="@d.Icon"></i></div>
+                    <div class="specialty-info">
+                        <strong>@d.Name</strong>
+                        <p>@d.Description</p>
+                        <span class="@(d.SlotsThisWeek > 0 ? "available" : "unavailable")">
+                            @(d.SlotsThisWeek > 0 ? $"Còn {d.SlotsThisWeek} lịch trong tuần" : "Chưa có lịch khả dụng")
+                        </span>
+                    </div>
+                    <div class="check-mark"><i data-lucide="check"></i></div>
+                </button>
+            }
+        </div>
+
+        <div class="empty-state" id="khoa-empty" hidden>
+            <i data-lucide="search"></i>
+            <strong>Không tìm thấy chuyên khoa</strong>
+            <p>Thử tìm bằng từ khóa khác hoặc liên hệ 1900 6868 để được hỗ trợ.</p>
+        </div>
+
+        <div class="booking-footer">
+            <span>Đã chọn: <strong id="khoa-selected-name">@(selected?.Name ?? "chưa chọn")</strong></span>
+            <button type="submit" class="btn btn-primary" id="khoa-next" disabled="@(selected is null)">
+                Tiếp tục <i data-lucide="chevron-right"></i>
+            </button>
+        </div>
+    </section>
+</form>
+
+@section Scripts {
+    <script src="~/js/booking.js" asp-append-version="true"></script>
+}

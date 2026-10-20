@@ -1,0 +1,26 @@
+@* Modal thông tin bác sĩ dùng chung. booking.js điền dữ liệu từ data-doctor-open (JSON) rồi mở modal. *@
+<div class="scrim modal-scrim" id="doctor-scrim" data-modal-close hidden></div>
+<div class="modal doctor-modal" id="doctor-modal" role="dialog" aria-modal="true" aria-labelledby="dm-name" hidden>
+    <button type="button" class="icon-button modal-close" data-modal-close aria-label="Đóng"><i data-lucide="x"></i></button>
+    <div class="doctor-profile-head">
+        <div class="doctor-avatar large" id="dm-avatar"></div>
+        <div>
+            <span class="badge badge-green">ĐANG CÓ LỊCH</span>
+            <div class="modal-title" id="dm-name"></div>
+            <p id="dm-title"></p>
+        </div>
+    </div>
+    <div class="doctor-facts">
+        <div><i data-lucide="stethoscope"></i><span>Chuyên môn<strong id="dm-specialty"></strong></span></div>
+        <div><i data-lucide="history"></i><span>Kinh nghiệm<strong id="dm-experience"></strong></span></div>
+        <div><i data-lucide="clock-3"></i><span>Giờ phụ trách<strong id="dm-time"></strong></span></div>
+        <div><i data-lucide="map-pin"></i><span>Phòng khám<strong id="dm-room"></strong></span></div>
+    </div>
+    <div class="doctor-note">
+        <i data-lucide="info"></i>
+        <span>Thông tin bác sĩ được cập nhật theo lịch trực ngày <span id="dm-date"></span> và có thể thay đổi khi có tình huống chuyên môn.</span>
+    </div>
+    <div class="modal-actions">
+        <button type="button" class="btn btn-primary" data-modal-close>Đóng thông tin</button>
+    </div>
+</div>

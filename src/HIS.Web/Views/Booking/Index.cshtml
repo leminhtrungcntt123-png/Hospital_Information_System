@@ -1,0 +1,67 @@
+﻿@* A1. Trang bắt đầu đặt lịch (dùng _Layout mặc định: có Header + Footer) *@
+@{
+    ViewData["Title"] = "Đặt lịch khám";
+
+    var steps = new[]
+    {
+        (Icon: "search", No: "01", Title: "Chọn chuyên khoa", Text: "Tìm chuyên khoa phù hợp với nhu cầu thăm khám."),
+        (Icon: "calendar-days", No: "02", Title: "Chọn lịch khám", Text: "Chọn ngày và ca khám còn khả dụng."),
+        (Icon: "user-round", No: "03", Title: "Chọn người khám", Text: "Sử dụng hồ sơ đã lưu hoặc tạo hồ sơ mới."),
+        (Icon: "circle-check", No: "04", Title: "Xác nhận lịch", Text: "Kiểm tra thông tin và nhận mã lịch hẹn."),
+    };
+}
+
+<main>
+    <section class="start-hero">
+        <span class="badge badge-blue"><i data-lucide="shield-check"></i> Đặt lịch nhanh chóng và bảo mật</span>
+        <div class="display">Chủ động lịch khám,<br /><span>an tâm chăm sóc.</span></div>
+        <p class="hero-copy">
+            Đặt lịch khám tại Bệnh viện Đa khoa HIS chỉ trong vài phút. Không chờ đợi lâu,
+            thông tin minh bạch và luôn được hỗ trợ.
+        </p>
+        <div class="hero-actions">
+            <a class="btn btn-primary" asp-action="ChonKhoa"><i data-lucide="calendar-days"></i> Bắt đầu đặt lịch</a>
+        </div>
+        <div class="trust-row">
+            <div><i data-lucide="circle-check"></i><span>Miễn phí đặt lịch</span></div>
+            <div><i data-lucide="circle-check"></i><span>Bảo mật thông tin</span></div>
+            <div><i data-lucide="circle-check"></i><span>Hỗ trợ 24/7</span></div>
+        </div>
+    </section>
+
+    <section class="process section">
+        <div class="section-intro">
+            <div>
+                <div class="eyebrow">QUY TRÌNH ĐẶT LỊCH</div>
+                <div class="section-title">Dễ dàng trong 4 bước</div>
+            </div>
+            <p>Thông tin lịch khám được lưu giữ trong suốt quá trình. Bạn có thể quay lại chỉnh sửa bất cứ lúc nào.</p>
+        </div>
+        <div class="process-grid">
+            @for (int i = 0; i < steps.Length; i++)
+            {
+                var s = steps[i];
+                <div class="process-card">
+                    <div class="process-top">
+                        <div class="process-icon"><i data-lucide="@s.Icon"></i></div>
+                        <span>@s.No</span>
+                    </div>
+                    <strong>@s.Title</strong>
+                    <p>@s.Text</p>
+                    @if (i < steps.Length - 1)
+                    {
+                        <i data-lucide="chevron-right" class="process-arrow"></i>
+                    }
+                </div>
+            }
+        </div>
+    </section>
+
+    <section class="emergency section">
+        <div class="emergency-icon"><i data-lucide="circle-alert"></i></div>
+        <div>
+            <strong>Trường hợp cấp cứu?</strong>
+            <p>Không sử dụng chức năng đặt lịch. Vui lòng gọi <b>115</b> hoặc đến khoa Cấp cứu gần nhất.</p>
+        </div>
+    </section>
+</main>

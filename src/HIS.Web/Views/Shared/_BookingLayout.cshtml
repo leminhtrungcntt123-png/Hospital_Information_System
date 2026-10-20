@@ -1,0 +1,59 @@
+@{
+    // Mỗi view đặt:
+    //   ViewData["Step"]    = 1..4  (không đặt ở trang thành công -> ẩn thanh trên và stepper)
+    //   ViewData["BackUrl"] = đường dẫn nút quay lại
+    int? step = ViewData["Step"] as int?;
+    string backUrl = ViewData["BackUrl"] as string ?? Url.Action("Index", "Booking")!;
+    string backText = step == 1 ? "Thoát đặt lịch" : "Quay lại";
+    string[] labels = { "Chuyên khoa", "Ngày & ca khám", "Người khám", "Xác nhận" };
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@(ViewData["Title"] ?? "Đặt lịch khám") - HIS</title>
+    <link rel="icon" href="~/favicon.ico" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/booking.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="app">
+        @if (step is not null)
+        {
+            <main class="booking-shell">
+                <div class="booking-top">
+                    <a class="back-link" href="@backUrl"><i data-lucide="chevron-left"></i> @backText</a>
+                    <div class="booking-title">Đặt lịch khám</div>
+                    <div class="save-note"><i data-lucide="circle-check"></i> Thông tin được tự động lưu</div>
+                </div>
+
+                <div class="stepper">
+                    @for (int i = 0; i < labels.Length; i++)
+                    {
+                        int n = i + 1;
+                        string cls = step > n ? "done" : step == n ? "active" : "";
+                        <div class="step @cls">
+                            <div class="step-dot">
+                                @if (step > n) { <i data-lucide="check"></i> } else { @n }
+                            </div>
+                            <span>@labels[i]</span>
+                            @if (i < labels.Length - 1) { <div class="step-line"></div> }
+                        </div>
+                    }
+                </div>
+
+                @RenderBody()
+            </main>
+        }
+        else
+        {
+            @RenderBody()
+        }
+    </div>
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>lucide.createIcons();</script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

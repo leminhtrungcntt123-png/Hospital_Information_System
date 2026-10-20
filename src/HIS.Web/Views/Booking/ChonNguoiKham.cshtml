@@ -1,0 +1,138 @@
+@* Bước 3: Chọn người khám (kèm modal thêm hồ sơ mới) *@
+@model ChonNguoiKhamViewModel
+@{
+    Layout = "_BookingLayout";
+    ViewData["Title"] = "Chọn người khám";
+    ViewData["Step"] = 3;
+    ViewData["BackUrl"] = Url.Action("ChonNgayCa", "Booking");
+
+    var selected = Model.Patients.FirstOrDefault(p => p.Id == Model.SelectedPatientId);
+}
+
+<form asp-action="ChonNguoiKham" method="post" id="nguoi-form">
+    <input type="hidden" name="patientId" id="field-patient" value="@Model.SelectedPatientId" />
+
+    <section class="booking-content">
+        <div class="content-head">
+            <div>
+                <div class="eyebrow">BƯỚC 3 / 4</div>
+                <div class="page-title">Ai sẽ là người đến khám?</div>
+                <p>Chọn một hồ sơ đã lưu. Mỗi lịch hẹn chỉ liên kết với một người khám.</p>
+            </div>
+            <button type="button" class="btn btn-outline" data-open-add-profile>
+                <i data-lucide="plus"></i> Thêm hồ sơ mới
+            </button>
+        </div>
+
+        <partial name="_ErrorAlert" />
+
+        <div class="profile-select-grid">
+            @foreach (var p in Model.Patients)
+            {
+                var isSelected = p.Id == Model.SelectedPatientId;
+                <button type="button" class="profile-select @(isSelected ? "selected" : "")"
+                        data-id="@p.Id" data-name="@p.FullName" data-verified="@(p.IsVerified ? "true" : "false")">
+                    <div class="profile-avatar">@p.Initials</div>
+                    <div class="profile-body">
+                        <div>
+                            <strong>@p.FullName</strong>
+                            <span class="badge @(p.Relationship == "Bản thân" ? "badge-blue" : "badge-gray")">@p.Relationship</span>
+                        </div>
+                        <p>Mã người bệnh: @p.Code</p>
+                        <p>Ngày sinh: @VietnameseFormat.ShortDate(p.DateOfBirth)</p>
+                        @if (p.IsVerified)
+                        {
+                            <span class="verified"><i data-lucide="shield-check"></i> Đã xác minh</span>
+                        }
+                        else
+                        {
+                            <span class="needs-verify"><i data-lucide="circle-alert"></i> Cần bổ sung thông tin</span>
+                        }
+                    </div>
+                    <div class="check-mark"><i data-lucide="check"></i></div>
+                </button>
+            }
+        </div>
+
+        @* TODO: nút "Cập nhật hồ sơ" thuộc nhóm B (Hồ sơ người khám), người phụ trách nhóm đó nối vào đây. *@
+        <div class="alert warning" id="unverified-alert" hidden>
+            <i data-lucide="circle-alert"></i>
+            <div>
+                <strong>Hồ sơ cần được bổ sung trước khi đặt lịch</strong>
+                <p>Vui lòng cập nhật giấy tờ định danh của người khám hoặc chọn hồ sơ khác để tiếp tục.</p>
+            </div>
+        </div>
+
+        <div class="privacy-note">
+            <i data-lucide="shield-check"></i>
+            <span>Thông tin cá nhân được mã hóa và chỉ sử dụng cho mục đích chăm sóc sức khỏe.</span>
+        </div>
+
+        <div class="booking-footer">
+            <span>Đã chọn: <strong id="nguoi-selected-name">@(selected?.FullName ?? "chưa chọn")</strong></span>
+            <button type="submit" class="btn btn-primary" id="nguoi-next" disabled="@(selected is null)">
+                Tiếp tục <i data-lucide="chevron-right"></i>
+            </button>
+        </div>
+    </section>
+</form>
+
+@* Modal thêm hồ sơ: đặt NGOÀI form chọn người khám (không được lồng form trong form). *@
+<div class="scrim modal-scrim" id="add-profile-scrim" data-modal-close hidden></div>
+<div class="modal profile-modal" id="add-profile-modal" role="dialog" aria-modal="true" aria-labelledby="add-profile-title" hidden>
+    <div class="modal-icon profile"><i data-lucide="user-round"></i></div>
+    <button type="button" class="icon-button modal-close" data-modal-close aria-label="Đóng"><i data-lucide="x"></i></button>
+    <div class="modal-title" id="add-profile-title">Thêm hồ sơ người khám</div>
+    <p>Thông tin chuyên khoa, ngày và ca khám hiện tại sẽ được giữ nguyên.</p>
+
+    <form asp-action="ThemHoSo" method="post" id="add-profile-form" novalidate>
+        <div class="form-grid">
+            <label>
+                <span>Họ và tên <b>*</b></span>
+                <input name="FullName" maxlength="100" placeholder="Nhập họ và tên" autocomplete="off" />
+                <small hidden>Vui lòng nhập họ và tên người khám.</small>
+            </label>
+            <label>
+                <span>Ngày sinh <b>*</b></span>
+                <input name="DateOfBirth" placeholder="DD/MM/YYYY" inputmode="numeric" autocomplete="off" />
+                <small hidden>Ngày sinh không hợp lệ. Vui lòng nhập theo định dạng DD/MM/YYYY.</small>
+            </label>
+            <label>
+                <span>Giới tính</span>
+                <select name="Gender">
+                    <option value="">Chọn giới tính</option>
+                    <option value="MALE">Nam</option>
+                    <option value="FEMALE">Nữ</option>
+                    <option value="OTHER">Khác</option>
+                </select>
+            </label>
+            <label>
+                <span>Mối quan hệ</span>
+                <select name="Relationship">
+                    <option value="OTHER">Người thân</option>
+                    <option value="PARENT">Cha/Mẹ</option>
+                    <option value="CHILD">Con</option>
+                    <option value="SPOUSE">Vợ/Chồng</option>
+                    <option value="SELF">Bản thân</option>
+                </select>
+            </label>
+            <label class="wide">
+                <span>Số điện thoại liên hệ <b>*</b></span>
+                <input name="Phone" type="tel" placeholder="Nhập số điện thoại" autocomplete="off" />
+                <small hidden>Số điện thoại không hợp lệ (10 đến 11 chữ số, bắt đầu bằng 0).</small>
+            </label>
+        </div>
+        <div class="duplicate-note">
+            <i data-lucide="info"></i>
+            <span>Hệ thống sẽ kiểm tra hồ sơ có khả năng trùng trước khi lưu.</span>
+        </div>
+        <div class="modal-actions">
+            <button type="button" class="btn btn-outline" data-modal-close>Hủy</button>
+            <button type="submit" class="btn btn-primary" id="add-profile-submit">Lưu và chọn hồ sơ</button>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script src="~/js/booking.js" asp-append-version="true"></script>
+}

@@ -51,3 +51,17 @@ HIS/                              ← 1 repo Git duy nhất, 1 folder gốc
     └─ HIS.Tests/
         ├─ HIS.Tests.csproj
         └─ BookingServiceTests.cs
+
+
+
+
+
+[PostgreSQL] 
+     ▲
+     │ (EF Core / Npgsql)
+[HIS.WebApi] (Cổng 7198)
+  ▲         ▲
+  │ (HTTP)  │ (HTTP)
+  │         └──────────────┐
+[HIS.Web]            [HIS.WinForms]
+(Cổng 5044)          (Desktop App)
