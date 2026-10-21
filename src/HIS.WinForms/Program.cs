@@ -35,14 +35,33 @@ static class Program
                 services.AddScoped<IBookingService, BookingService>();
                 services.AddScoped<IAdminService, AdminService>();
                 services.AddScoped<IReceptionService, ReceptionService>();
+                services.AddScoped<IAuthService, AuthService>();
 
                 // Register Forms
+                services.AddScoped<UserSession>();
+                services.AddTransient<LoginForm>();
                 services.AddTransient<MainForm>();
             })
             .Build();
 
-        using var scope = host.Services.CreateScope();
-        var mainForm = scope.ServiceProvider.GetRequiredService<MainForm>();
-        Application.Run(mainForm);
+        // Mỗi phiên đăng nhập dùng một DI scope riêng để DbContext và UserSession được làm mới.
+        while (true)
+        {
+            using var scope = host.Services.CreateScope();
+
+            var loginForm = scope.ServiceProvider.GetRequiredService<LoginForm>();
+            if (loginForm.ShowDialog() != DialogResult.OK)
+            {
+                break;
+            }
+
+            var mainForm = scope.ServiceProvider.GetRequiredService<MainForm>();
+            Application.Run(mainForm);
+
+            if (!mainForm.LogoutRequested)
+            {
+                break;
+            }
+        }
     }
 }
