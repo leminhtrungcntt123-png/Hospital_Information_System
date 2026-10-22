@@ -1,0 +1,64 @@
+@* Bước 2: Chọn ngày và ca khám. Danh sách ca được tải lại bằng fetch (action CaKham) khi đổi ngày. *@
+@model ChonNgayCaViewModel
+@{
+    Layout = "_BookingLayout";
+    ViewData["Title"] = "Chọn ngày và ca khám";
+    ViewData["Step"] = 2;
+    ViewData["BackUrl"] = Url.Action("ChonKhoa", "Booking");
+
+    var list = Model.ShiftList;
+}
+
+<form asp-action="ChonNgayCa" method="post" id="ngay-form">
+    <input type="hidden" name="date" id="field-date" value="@list.Date.ToString("yyyy-MM-dd")" />
+    <input type="hidden" name="shift" id="field-shift" value="@list.SelectedShift" />
+
+    <section class="booking-content">
+        <div class="content-head">
+            <div>
+                <div class="eyebrow">BƯỚC 2 / 4</div>
+                <div class="page-title">Chọn ngày và ca khám</div>
+                <p>Chuyên khoa <b>@Model.Department.Name</b> · Xem bác sĩ phụ trách của từng ca trước khi chọn.</p>
+            </div>
+            <span class="badge badge-gray">@Model.MonthLabel</span>
+        </div>
+
+        <partial name="_ErrorAlert" />
+
+        <div class="date-strip" id="date-strip">
+            @foreach (var day in Model.Days)
+            {
+                var isSelected = day.Date == list.Date;
+                <button type="button" class="@(isSelected ? "selected" : "") @day.State"
+                        data-date="@day.Date.ToString("yyyy-MM-dd")" data-state="@day.State"
+                        disabled="@(day.State == "off")">
+                    <span>@VietnameseFormat.WeekdayShort(day.Date)</span>
+                    <strong>@day.Date.Day</strong>
+                    <small>@(day.State switch { "full" => "Hết chỗ", "off" => "Nghỉ", "few" => "Sắp hết", _ => "Còn lịch" })</small>
+                </button>
+            }
+        </div>
+        <div class="legend">
+            <span><i class="dot green"></i> Còn lịch</span>
+            <span><i class="dot yellow"></i> Sắp hết</span>
+            <span><i class="dot gray"></i> Không khả dụng</span>
+        </div>
+
+        <div id="shift-container" data-url="@Url.Action("CaKham", "Booking")">
+            <partial name="_ShiftList" model="list" />
+        </div>
+
+        <div class="booking-footer">
+            <span>Có thể quay lại đổi chuyên khoa mà không mất lựa chọn phù hợp.</span>
+            <button type="submit" class="btn btn-primary" id="ngay-next" disabled="@(string.IsNullOrEmpty(list.SelectedShift))">
+                Tiếp tục <i data-lucide="chevron-right"></i>
+            </button>
+        </div>
+    </section>
+</form>
+
+<partial name="_DoctorModal" />
+
+@section Scripts {
+    <script src="~/js/booking.js" asp-append-version="true"></script>
+}

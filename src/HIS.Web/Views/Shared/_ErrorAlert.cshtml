@@ -1,0 +1,11 @@
+@* Hiển thị thông báo lỗi do Controller đặt vào TempData["Error"] *@
+@if (TempData["Error"] is string error && !string.IsNullOrWhiteSpace(error))
+{
+    <div class="alert error" role="alert">
+        <i data-lucide="circle-alert"></i>
+        <div>
+            <strong>Không thể tiếp tục</strong>
+            <p>@error</p>
+        </div>
+    </div>
+}
