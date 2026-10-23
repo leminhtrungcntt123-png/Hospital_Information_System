@@ -1,0 +1,103 @@
+@* Danh sách ca khám của một ngày + tóm tắt lựa chọn.
+   Dùng ở ChonNgayCa.cshtml và được trả về cho fetch (BookingController.CaKham). *@
+@model ShiftListViewModel
+@{
+    var total = Model.Shifts.Sum(s => s.SlotsLeft);
+    var dateLabel = VietnameseFormat.FullDate(Model.Date);
+    var picked = Model.Shifts.FirstOrDefault(s => s.Key == Model.SelectedShift);
+}
+
+<div class="shift-layout">
+    <div>
+        <div class="subhead">
+            <div>
+                <strong>Chọn một ca khám</strong>
+                <span>@dateLabel</span>
+            </div>
+            @if (total > 0)
+            {
+                <span class="badge badge-green">Còn @total chỗ</span>
+            }
+            else
+            {
+                <span class="badge badge-red">Hết chỗ</span>
+            }
+        </div>
+
+        @if (Model.Shifts.Count == 0)
+        {
+            <div class="empty-state">
+                <i data-lucide="calendar-days"></i>
+                <strong>Không có lịch trực ngày này</strong>
+                <p>Vui lòng chọn một ngày khác trong dải ngày phía trên.</p>
+            </div>
+        }
+        else
+        {
+            <div class="shift-grid">
+                @foreach (var s in Model.Shifts)
+                {
+                    var isSelected = s.Key == Model.SelectedShift;
+                    <div class="shift-card @(isSelected ? "selected" : "") @(s.IsSelectable ? "" : "disabled")"
+                         data-shift="@s.Key" data-label="@s.Label" data-time="@s.TimeRange"
+                         data-doctor="@(s.Doctor?.FullName ?? "Chưa phân công")">
+                        <button type="button" class="shift-select" disabled="@(!s.IsSelectable)">
+                            <div class="shift-card-head">
+                                <div><i data-lucide="clock-3"></i><span>@s.Label</span></div>
+                                @switch (s.Status)
+                                {
+                                    case "AVAILABLE":
+                                        <span class="badge badge-green">Còn @s.SlotsLeft chỗ</span>
+                                        break;
+                                    case "FULL":
+                                        <span class="badge badge-red">Hết chỗ</span>
+                                        break;
+                                    default:
+                                        <span class="badge badge-gray">Không có lịch trực</span>
+                                        break;
+                                }
+                            </div>
+                            <strong>@s.TimeRange</strong>
+                            @if (s.Doctor is not null)
+                            {
+                                <div class="doctor-inline">
+                                    <div class="doctor-avatar">@s.Doctor.Initials</div>
+                                    <div><b>@s.Doctor.FullName</b><small>@s.Doctor.Title</small></div>
+                                </div>
+                                <div class="doctor-room"><i data-lucide="map-pin"></i> @s.Room</div>
+                            }
+                            else
+                            {
+                                <div class="doctor-room">Bệnh viện chưa xếp bác sĩ cho ca này.</div>
+                            }
+                            <div class="selected-shift"><i data-lucide="check"></i> Đã chọn</div>
+                        </button>
+                        @if (s.Doctor is not null)
+                        {
+                            <button type="button" class="doctor-link"
+                                    data-doctor-open="@s.Doctor.ToModalJson(s.TimeRange, s.Room, Model.Date)">
+                                Xem thông tin bác sĩ <i data-lucide="chevron-right"></i>
+                            </button>
+                        }
+                    </div>
+                }
+            </div>
+
+            <div class="alert info">
+                <i data-lucide="info"></i>
+                <div>
+                    <strong>Bác sĩ được hiển thị theo lịch trực hiện tại</strong>
+                    <p>Nếu có thay đổi chuyên môn đột xuất, bệnh viện sẽ thông báo trước cho bạn.</p>
+                </div>
+            </div>
+        }
+    </div>
+
+    <aside class="selection-summary">
+        <div class="eyebrow">LỰA CHỌN CỦA BẠN</div>
+        <div><i data-lucide="stethoscope"></i><span>Chuyên khoa<em>@Model.DepartmentName</em></span></div>
+        <div><i data-lucide="calendar-days"></i><span>Ngày khám<em>@dateLabel</em></span></div>
+        <div><i data-lucide="clock-3"></i><span>Ca khám<em id="sum-shift">@(picked is null ? "Chưa chọn" : $"{picked.Label} · {picked.TimeRange}")</em></span></div>
+        <div><i data-lucide="user-round"></i><span>Bác sĩ phụ trách<em id="sum-doctor">@(picked?.Doctor?.FullName ?? "Chưa chọn ca khám")</em></span></div>
+    </aside>
+</div>

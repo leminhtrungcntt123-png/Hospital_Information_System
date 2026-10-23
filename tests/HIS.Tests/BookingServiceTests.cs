@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using HIS.DAL;
 using HIS.BLL;
+using HIS.BLL.Services;
 using Xunit;
 
 namespace HIS.Tests;

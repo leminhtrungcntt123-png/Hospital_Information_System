@@ -1,0 +1,77 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@(ViewData["Title"] ?? "Đặt lịch khám") - HIS</title>
+    <link rel="icon" href="~/favicon.ico" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/booking.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="app">
+        <header class="header">
+            <div class="header-inner">
+                <a class="logo" asp-controller="Booking" asp-action="Index">
+                    <div class="logo-mark"><i data-lucide="heart-pulse"></i></div>
+                    <div>
+                        <div class="logo-name">HIS</div>
+                        <div class="logo-sub">BỆNH VIỆN ĐA KHOA</div>
+                    </div>
+                </a>
+
+                <nav class="nav">
+                    <a asp-controller="Booking" asp-action="Index">Trang chủ</a>
+                    <a asp-controller="Booking" asp-action="ChonKhoa">Đặt lịch khám</a>
+                    <a href="#">Lịch khám</a>
+                    <a href="#">Hồ sơ người khám</a>
+                    <a href="#">Lịch sử khám</a>
+                    <a href="#">Hàng đợi</a>
+                    @* TODO (người phụ trách từng phần bật lên khi hoàn thành):
+                    <a href="#">Lịch khám</a>
+                    <a href="#">Hồ sơ người khám</a>
+                    <a href="#">Lịch sử khám</a>
+                    <a href="#">Hàng đợi</a>
+                    *@
+                </nav>
+
+                <div class="header-actions">
+                    @* TODO: chuông thông báo (nhóm D) và avatar đăng nhập (thành viên khác phụ trách) *@
+                    <a class="btn btn-primary" asp-controller="Booking" asp-action="ChonKhoa">
+                        <i data-lucide="calendar-days"></i> Đặt lịch khám
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        @RenderBody()
+
+        <footer class="footer">
+            <div class="footer-inner">
+                <div>
+                    <div class="logo">
+                        <div class="logo-mark"><i data-lucide="heart-pulse"></i></div>
+                        <div>
+                            <div class="logo-name">HIS</div>
+                            <div class="logo-sub">BỆNH VIỆN ĐA KHOA</div>
+                        </div>
+                    </div>
+                    <p>Chăm sóc bằng chuyên môn, đồng hành bằng sự tận tâm.</p>
+                </div>
+                <div><strong>Hỗ trợ đặt lịch</strong><span>1900 6868</span><span>Thứ 2 – Thứ 7, 06:30 – 20:00</span></div>
+                <div><strong>Địa chỉ</strong><span>xxx Nguyễn Chí Thanh, Hà Nội</span><span>contact@his-hospital.vn</span></div>
+                <div><strong>Thông tin</strong><span>Hướng dẫn khám bệnh</span><span>Chính sách bảo mật</span></div>
+            </div>
+            <div class="footer-bottom">© @DateTime.Now.Year Bệnh viện Đa khoa HIS · Dữ liệu trên giao diện là dữ liệu minh họa</div>
+        </footer>
+    </div>
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>lucide.createIcons();</script>
+    @* Hàm của ASP.NET Core dùng để quét và chèn một vùng (Section) nội dung từ trang con vào vị trí này.
+    Tên của vùng section do bạn đặt (ở đây đặt tên đại diện cho các file/đoạn code JavaScript).
+    Không bắt buộc. Trang con nào cần dùng JS riêng thì viết
+    *@
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

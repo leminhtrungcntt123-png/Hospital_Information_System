@@ -1,0 +1,99 @@
+@* Bước 4: Kiểm tra và xác nhận lịch khám *@
+@model XacNhanViewModel
+@{
+    Layout = "_BookingLayout";
+    ViewData["Title"] = "Xác nhận lịch khám";
+    ViewData["Step"] = 4;
+    ViewData["BackUrl"] = Url.Action("ChonNguoiKham", "Booking");
+
+    var shift = Model.Shift;
+}
+
+<form asp-action="XacNhan" method="post" id="xacnhan-form">
+    <section class="booking-content">
+        <div class="content-head">
+            <div>
+                <div class="eyebrow">BƯỚC 4 / 4</div>
+                <div class="page-title">Kiểm tra và xác nhận lịch khám</div>
+                <p>Vui lòng kiểm tra kỹ thông tin trước khi gửi yêu cầu đặt lịch.</p>
+            </div>
+        </div>
+
+        <partial name="_ErrorAlert" />
+
+        <div class="confirmation-layout">
+            <div class="confirm-main">
+                <div class="card-section">
+                    <div class="card-head">
+                        <strong>Thông tin người khám</strong>
+                        <a asp-action="ChonNguoiKham" class="link-button">Chỉnh sửa</a>
+                    </div>
+                    <div class="patient-inline">
+                        <div class="profile-avatar">@Model.Patient.Initials</div>
+                        <div>
+                            <strong>@Model.Patient.FullName</strong>
+                            <span>@Model.Patient.Relationship · @VietnameseFormat.ShortDate(Model.Patient.DateOfBirth)</span>
+                            <span>@Model.Patient.Code</span>
+                        </div>
+                        <span class="badge badge-green"><i data-lucide="shield-check"></i> Đã xác minh</span>
+                    </div>
+                </div>
+
+                <div class="card-section">
+                    <div class="card-head"><strong>Thông tin liên hệ</strong></div>
+                    <div class="detail-grid">
+                        <label><span>Số điện thoại</span><strong>@Model.Patient.Phone</strong></label>
+                    </div>
+                </div>
+
+                <div class="alert warning">
+                    <i data-lucide="circle-alert"></i>
+                    <div>
+                        <strong>Lưu ý trước khi đến khám</strong>
+                        <p>Vui lòng đến trước giờ hẹn 15 phút, mang theo CCCD, thẻ BHYT và hồ sơ khám trước đây (nếu có).</p>
+                    </div>
+                </div>
+
+                <label class="agreement">
+                    <input type="checkbox" name="agreed" value="true" id="agree" checked />
+                    <span>Tôi xác nhận thông tin trên là chính xác và đồng ý với <u>quy định đặt lịch khám</u> của bệnh viện.</span>
+                </label>
+            </div>
+
+            <aside class="appointment-summary">
+                <div class="summary-title"><i data-lucide="calendar-days"></i> Tóm tắt lịch khám</div>
+                <div class="summary-row"><span>Chuyên khoa</span><strong>@Model.Department.Name</strong></div>
+                <div class="summary-row"><span>Ngày khám</span><strong>@VietnameseFormat.FullDate(Model.Date)</strong></div>
+                <div class="summary-row"><span>Ca khám</span><strong>@shift.Label · @shift.TimeRange</strong></div>
+                @if (shift.Doctor is not null)
+                {
+                    <div class="summary-doctor">
+                        <div class="doctor-avatar">@shift.Doctor.Initials</div>
+                        <div>
+                            <span>Bác sĩ phụ trách</span>
+                            <strong>@shift.Doctor.FullName</strong>
+                            <button type="button" data-doctor-open="@shift.Doctor.ToModalJson(shift.TimeRange, shift.Room, Model.Date)">Xem thông tin bác sĩ</button>
+                        </div>
+                    </div>
+                }
+                <div class="summary-row"><span>Địa điểm</span><strong>@shift.Room</strong></div>
+                <div class="summary-divider"></div>
+                <div class="summary-row"><span>Chi phí dự kiến</span><strong>@VietnameseFormat.Money(Model.Fee)</strong></div>
+                <small>Chưa bao gồm xét nghiệm và dịch vụ phát sinh.</small>
+            </aside>
+        </div>
+
+        <div class="booking-footer">
+            <span><i data-lucide="shield-check"></i> Hệ thống sẽ kiểm tra khả năng tiếp nhận lần cuối.</span>
+            <button type="submit" class="btn btn-primary" id="xacnhan-submit">
+                Xác nhận đặt lịch <i data-lucide="check"></i>
+            </button>
+        </div>
+    </section>
+</form>
+
+<partial name="_DoctorModal" />
+
+@section Scripts {
+    <script src="~/js/booking.js" asp-append-version="true"></script>
+}

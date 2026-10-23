@@ -1,0 +1,76 @@
+@* Bước 5: Đặt lịch thành công. Không đặt ViewData["Step"] nên _BookingLayout ẩn thanh trên và stepper. *@
+@model ThanhCongViewModel
+@{
+    Layout = "_BookingLayout";
+    ViewData["Title"] = "Đặt lịch thành công";
+
+    var confirmed = Model.Status == "CONFIRMED";
+}
+
+<main class="success-page">
+    <div class="success-card">
+        <div class="success-check"><i data-lucide="check"></i></div>
+
+        @if (confirmed)
+        {
+            <span class="badge badge-green">ĐÃ XÁC NHẬN</span>
+        }
+        else
+        {
+            <span class="badge badge-yellow">ĐÃ TIẾP NHẬN · CHỜ XÁC NHẬN</span>
+        }
+
+        <div class="success-title">@(confirmed ? "Đặt lịch khám thành công!" : "Đã tiếp nhận yêu cầu đặt lịch")</div>
+        <p>
+            @(confirmed ? "Lịch khám của bạn đã được xác nhận." : "Bệnh viện sẽ xác nhận lịch khám và thông báo cho bạn.")
+            Số điện thoại liên hệ: <b>@Model.Patient.Phone</b>
+        </p>
+
+        <div class="booking-code">
+            <span>MÃ LỊCH HẸN</span>
+            <strong>@Model.Code</strong>
+            <small>Vui lòng cung cấp mã này khi làm thủ tục</small>
+        </div>
+
+        <div class="success-details">
+            <div><i data-lucide="user-round"></i><span>Người khám<strong>@Model.Patient.FullName</strong></span></div>
+            <div><i data-lucide="stethoscope"></i><span>Chuyên khoa<strong>@Model.DepartmentName</strong></span></div>
+            <div><i data-lucide="calendar-days"></i><span>Thời gian<strong>@Model.ShiftLabel · @Model.TimeRange, @VietnameseFormat.ShortDate(Model.Date)</strong></span></div>
+            <div><i data-lucide="map-pin"></i><span>Địa điểm<strong>@Model.Room</strong></span></div>
+        </div>
+
+        @if (Model.Doctor is not null)
+        {
+            <div class="success-doctor">
+                <div class="doctor-avatar">@Model.Doctor.Initials</div>
+                <div>
+                    <span>Bác sĩ phụ trách</span>
+                    <strong>@Model.Doctor.FullName</strong>
+                    <small>@Model.Doctor.Title</small>
+                </div>
+                <button type="button" data-doctor-open="@Model.Doctor.ToModalJson(Model.TimeRange, Model.Room, Model.Date)">Xem thông tin</button>
+            </div>
+        }
+
+        <div class="alert warning">
+            <i data-lucide="circle-alert"></i>
+            <div>
+                <strong>Hướng dẫn trước khi đi khám</strong>
+                <p>Đến trước giờ hẹn 15 phút, mang theo CCCD, thẻ BHYT và hồ sơ khám trước đây (nếu có).</p>
+            </div>
+        </div>
+
+        <div class="success-actions">
+            @* TODO: trang "Lịch khám của tôi" (nhóm C1) do người khác phụ trách. Nối đường dẫn vào đây khi có. *@
+            <a class="btn btn-primary" href="#">Xem lịch hẹn của tôi</a>
+            <button type="button" class="btn btn-outline" data-print><i data-lucide="download"></i> Lưu phiếu hẹn</button>
+        </div>
+        <a class="text-button" asp-action="Index">Quay lại trang chủ</a>
+    </div>
+</main>
+
+<partial name="_DoctorModal" />
+
+@section Scripts {
+    <script src="~/js/booking.js" asp-append-version="true"></script>
+}
