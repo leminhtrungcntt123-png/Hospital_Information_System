@@ -26,6 +26,7 @@ public partial class MainForm : Form
     private readonly IBookingService _bookingService;
     private readonly IAdminService _adminService;
     private readonly IReceptionService _receptionService;
+    private readonly IDashboardService _dashboardService;
     private UserControl? _currentPage;
 
     [DllImport("user32.dll")]
@@ -35,16 +36,21 @@ public partial class MainForm : Form
     private static extern IntPtr SendMessage(IntPtr hWnd, int msg, int wParam, int lParam);
 
     // Constructor không tham số để Visual Studio Designer có thể mở form
-    public MainForm() : this(null!, null!, null!)
+    public MainForm() : this(null!, null!, null!, null!)
     {
     }
 
     // Constructor dùng Dependency Injection khi chạy thật
-    public MainForm(IBookingService bookingService, IAdminService adminService, IReceptionService receptionService)
+    public MainForm(
+        IBookingService bookingService,
+        IAdminService adminService,
+        IReceptionService receptionService,
+        IDashboardService dashboardService)
     {
         _bookingService = bookingService;
         _adminService = adminService;
         _receptionService = receptionService;
+        _dashboardService = dashboardService;
 
         InitializeComponent();
         DoubleBuffered = true;
@@ -277,7 +283,7 @@ public partial class MainForm : Form
 
     private void ShowDashboard()
     {
-        var page = new DashboardPage();
+        var page = new DashboardPage(_dashboardService);
         page.NavigateRequested += OpenView;
 
         SetActiveNav(btnNavDashboard);

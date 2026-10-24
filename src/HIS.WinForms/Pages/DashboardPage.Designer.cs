@@ -260,7 +260,7 @@ partial class DashboardPage
         lblIconPatients.Name = "lblIconPatients";
         lblIconPatients.Size = new Size(43, 43);
         lblIconPatients.TabIndex = 0;
-        lblIconPatients.Text = "BN";
+        lblIconPatients.Text = "TĐ";
         lblIconPatients.TextAlign = ContentAlignment.MiddleCenter;
         // 
         // lblPatientsTitle
@@ -295,7 +295,7 @@ partial class DashboardPage
         lblPatientsMeta.Name = "lblPatientsMeta";
         lblPatientsMeta.Size = new Size(158, 15);
         lblPatientsMeta.TabIndex = 3;
-        lblPatientsMeta.Text = "Tăng 12% so với hôm qua";
+        lblPatientsMeta.Text = "Lượt tiếp nhận hôm nay";
         // 
         // cardWaiting
         // 
@@ -364,7 +364,7 @@ partial class DashboardPage
         lblWaitingMeta.Name = "lblWaitingMeta";
         lblWaitingMeta.Size = new Size(158, 15);
         lblWaitingMeta.TabIndex = 3;
-        lblWaitingMeta.Text = "6 phòng khám đang hoạt động";
+        lblWaitingMeta.Text = "Đang chờ trong ngày";
         // 
         // cardInpatient
         // 
@@ -398,7 +398,7 @@ partial class DashboardPage
         lblIconInpatient.Name = "lblIconInpatient";
         lblIconInpatient.Size = new Size(43, 43);
         lblIconInpatient.TabIndex = 0;
-        lblIconInpatient.Text = "NT";
+        lblIconInpatient.Text = "BN";
         lblIconInpatient.TextAlign = ContentAlignment.MiddleCenter;
         // 
         // lblInpatientTitle
@@ -410,7 +410,7 @@ partial class DashboardPage
         lblInpatientTitle.Name = "lblInpatientTitle";
         lblInpatientTitle.Size = new Size(103, 13);
         lblInpatientTitle.TabIndex = 1;
-        lblInpatientTitle.Text = "Bệnh nhân nội trú";
+        lblInpatientTitle.Text = "Tổng bệnh nhân";
         // 
         // lblInpatientValue
         // 
@@ -433,7 +433,7 @@ partial class DashboardPage
         lblInpatientMeta.Name = "lblInpatientMeta";
         lblInpatientMeta.Size = new Size(158, 15);
         lblInpatientMeta.TabIndex = 3;
-        lblInpatientMeta.Text = "Công suất giường 81%";
+        lblInpatientMeta.Text = "Trong toàn hệ thống";
         // 
         // cardRecords
         // 
@@ -502,7 +502,7 @@ partial class DashboardPage
         lblRecordsMeta.Name = "lblRecordsMeta";
         lblRecordsMeta.Size = new Size(172, 15);
         lblRecordsMeta.TabIndex = 3;
-        lblRecordsMeta.Text = "Đã ký số trong ngày";
+        lblRecordsMeta.Text = "Đã hoàn tất hôm nay";
         // 
         // tlpMiddle
         // 
@@ -1052,7 +1052,7 @@ partial class DashboardPage
         // 
         // colPriorityId
         // 
-        colPriorityId.HeaderText = "MÃ BN";
+        colPriorityId.HeaderText = "MÃ LỊCH";
         colPriorityId.Name = "colPriorityId";
         colPriorityId.ReadOnly = true;
         colPriorityId.Width = 100;

@@ -24,7 +24,7 @@ static class Program
             .ConfigureServices((context, services) =>
             {
                 var connectionString = context.Configuration.GetConnectionString("DefaultConnection")
-                    ?? "Host=localhost;Port=5432;Database=hospital_his;Username=postgres;Password=123456789";
+                    ?? "Host=localhost;Port=5432;Database=hospital_his;Username=postgres;Password=123456";
 
                 // Register DbContext with PostgreSQL & snake_case naming convention
                 services.AddDbContext<AppDbContext>(options =>
@@ -37,6 +37,7 @@ static class Program
                 services.AddScoped<IBookingService, BookingService>();
                 services.AddScoped<IAdminService, AdminService>();
                 services.AddScoped<IReceptionService, ReceptionService>();
+                services.AddScoped<IDashboardService, DashboardService>();
 
                 // Register Forms
                 services.AddTransient<MainForm>();
