@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using HIS.BLL;
 using HIS.BLL.DTOs;
 using HIS.BLL.Interfaces;
+using HIS.BLL.Session;
 using HIS.WinForms.Controls;
 using HIS.WinForms.Pages;
 
@@ -27,7 +28,10 @@ public partial class MainForm : Form
     private readonly IAdminService _adminService;
     private readonly IReceptionService _receptionService;
     private readonly IDashboardService _dashboardService;
+    private readonly CurrentUser _currentUser;
     private UserControl? _currentPage;
+
+    public bool LogoutRequested { get; private set; }
 
     [DllImport("user32.dll")]
     private static extern bool ReleaseCapture();
@@ -36,7 +40,7 @@ public partial class MainForm : Form
     private static extern IntPtr SendMessage(IntPtr hWnd, int msg, int wParam, int lParam);
 
     // Constructor không tham số để Visual Studio Designer có thể mở form
-    public MainForm() : this(null!, null!, null!, null!)
+    public MainForm() : this(null!, null!, null!, null!, null!)
     {
     }
 
@@ -45,12 +49,14 @@ public partial class MainForm : Form
         IBookingService bookingService,
         IAdminService adminService,
         IReceptionService receptionService,
-        IDashboardService dashboardService)
+        IDashboardService dashboardService,
+        CurrentUser currentUser)
     {
         _bookingService = bookingService;
         _adminService = adminService;
         _receptionService = receptionService;
         _dashboardService = dashboardService;
+        _currentUser = currentUser;
 
         InitializeComponent();
         DoubleBuffered = true;
@@ -59,6 +65,7 @@ public partial class MainForm : Form
         WireNavigation();
         WireToolbar();
         WireWindowChrome();
+        ApplyRolePermissions();
 
         lblBadgeReception.BringToFront();
         lblBadgeExamination.BringToFront();
@@ -232,6 +239,8 @@ public partial class MainForm : Form
 
             if (result == DialogResult.Yes)
             {
+                _currentUser?.SignOut();
+                LogoutRequested = true;
                 Close();
             }
         };
@@ -293,6 +302,11 @@ public partial class MainForm : Form
 
     private void ShowReceptionPage()
     {
+        if (!IsViewAllowed("reception"))
+        {
+            return;
+        }
+
         if (_receptionService == null)
         {
             MessageBox.Show(
@@ -319,7 +333,7 @@ public partial class MainForm : Form
 
     private async Task UpdateReceptionBadgeAsync()
     {
-        if (_receptionService == null)
+        if (_receptionService == null || !btnNavReception.Visible)
         {
             return;
         }
@@ -338,11 +352,16 @@ public partial class MainForm : Form
     private void UpdateReceptionBadge(int waitingCount)
     {
         lblBadgeReception.Text = Math.Min(waitingCount, 99).ToString();
-        lblBadgeReception.Visible = waitingCount > 0;
+        lblBadgeReception.Visible = btnNavReception.Visible && waitingCount > 0;
     }
 
     private void ShowPlaceholder(string key, string title, string subtitle)
     {
+        if (!IsViewAllowed(key))
+        {
+            return;
+        }
+
         SetActiveNav(GetNavButton(key));
         lblBreadcrumb.Text = $"HIS   ›   {title}";
         ShowPage(new PlaceholderPage(title, subtitle));
@@ -350,6 +369,17 @@ public partial class MainForm : Form
 
     private void ShowAdminPage()
     {
+        if (!IsRoleAllowed("ADMIN"))
+        {
+            MessageBox.Show(
+                this,
+                "Bạn không có quyền truy cập chức năng quản trị hệ thống.",
+                "Quản lý hệ thống",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+            return;
+        }
+
         if (_adminService == null)
         {
             MessageBox.Show(
@@ -441,6 +471,55 @@ public partial class MainForm : Form
         "reports" => btnNavReports,
         _ => null
     };
+
+    private bool IsRoleAllowed(params string[] roles)
+    {
+        return _currentUser == null
+               || !_currentUser.IsAuthenticated
+               || _currentUser.IsInRole(roles);
+    }
+
+    private bool IsViewAllowed(string key) => key switch
+    {
+        "dashboard" => IsRoleAllowed("ADMIN", "RECEPTIONIST", "DOCTOR"),
+        "reception" => IsRoleAllowed("ADMIN", "RECEPTIONIST"),
+        "patients" => IsRoleAllowed("ADMIN", "RECEPTIONIST", "DOCTOR"),
+        "examination" => IsRoleAllowed("ADMIN", "DOCTOR"),
+        "inpatient" => IsRoleAllowed("ADMIN", "DOCTOR"),
+        "pharmacy" => IsRoleAllowed("ADMIN"),
+        "reports" => IsRoleAllowed("ADMIN", "RECEPTIONIST", "DOCTOR"),
+        _ => false
+    };
+
+    private void ApplyRolePermissions()
+    {
+        if (_currentUser == null || !_currentUser.IsAuthenticated)
+        {
+            return;
+        }
+
+        btnNavDashboard.Visible = IsViewAllowed("dashboard");
+        btnNavReception.Visible = IsViewAllowed("reception");
+        btnNavPatients.Visible = IsViewAllowed("patients");
+        btnNavExamination.Visible = IsViewAllowed("examination");
+        btnNavInpatient.Visible = IsViewAllowed("inpatient");
+        btnNavPharmacy.Visible = IsViewAllowed("pharmacy");
+        btnNavReports.Visible = IsViewAllowed("reports");
+
+        lblBadgeReception.Visible = btnNavReception.Visible && lblBadgeReception.Visible;
+        lblBadgeExamination.Visible = btnNavExamination.Visible && lblBadgeExamination.Visible;
+
+        btnNewReception.Visible = IsViewAllowed("reception");
+
+        bool isAdmin = IsRoleAllowed("ADMIN");
+        btnMenuSystem.Visible = isAdmin;
+        btnSettings.Visible = isAdmin;
+        menuItemAdmin.Visible = isAdmin;
+
+        accountName.Text = _currentUser.FullName;
+        accountRole.Text = _currentUser.RoleName;
+        lblSessionSecure.Text = $"✓  {_currentUser.RoleName}";
+    }
 
     private void ClockTimer_Tick(object? sender, EventArgs e) => UpdateClock();
 

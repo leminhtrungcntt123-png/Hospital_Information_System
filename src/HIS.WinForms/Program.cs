@@ -6,6 +6,7 @@ using HIS.DAL;
 using HIS.BLL;
 using HIS.BLL.Interfaces;
 using HIS.BLL.Services;
+using HIS.BLL.Session;
 
 namespace HIS.WinForms;
 
@@ -16,7 +17,7 @@ static class Program
     {
         ApplicationConfiguration.Initialize();
 
-        var host = Host.CreateDefaultBuilder()
+        using IHost host = Host.CreateDefaultBuilder()
             .ConfigureAppConfiguration((context, config) =>
             {
                 config.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
@@ -34,18 +35,41 @@ static class Program
                 });
 
                 // Register BLL services
+                services.AddScoped<IAuthService, AuthService>();
                 services.AddScoped<IBookingService, BookingService>();
                 services.AddScoped<IAdminService, AdminService>();
                 services.AddScoped<IReceptionService, ReceptionService>();
                 services.AddScoped<IDashboardService, DashboardService>();
+                services.AddSingleton<CurrentUser>();
 
                 // Register Forms
+                services.AddTransient<LoginForm>();
                 services.AddTransient<MainForm>();
             })
             .Build();
 
-        using var scope = host.Services.CreateScope();
-        var mainForm = scope.ServiceProvider.GetRequiredService<MainForm>();
-        Application.Run(mainForm);
+        while (true)
+        {
+            using IServiceScope scope = host.Services.CreateScope();
+
+            var loginForm = scope.ServiceProvider.GetRequiredService<LoginForm>();
+            if (loginForm.ShowDialog() != DialogResult.OK || loginForm.AuthenticatedUser == null)
+            {
+                break;
+            }
+
+            var currentUser = scope.ServiceProvider.GetRequiredService<CurrentUser>();
+            currentUser.SignIn(loginForm.AuthenticatedUser);
+
+            var mainForm = scope.ServiceProvider.GetRequiredService<MainForm>();
+            Application.Run(mainForm);
+
+            if (!mainForm.LogoutRequested)
+            {
+                break;
+            }
+
+            currentUser.SignOut();
+        }
     }
 }

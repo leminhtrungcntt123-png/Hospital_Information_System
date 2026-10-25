@@ -1,8 +1,8 @@
 -- Dữ liệu test cho chức năng Tiếp đón (chạy lặp lại an toàn).
 -- Cách chạy:
---   psql -h localhost -p 5432 -U postgres -d hospital_his -f reception_seed.sql
+--   psql -v ON_ERROR_STOP=1 -h localhost -p 5432 -U postgres -d hospital_his -f reception_seed.sql
+--   hoặc pgAdmin: Query Tool -> Open file -> Execute
 
-\set ON_ERROR_STOP on
 BEGIN;
 SET client_encoding = 'UTF8';
 
@@ -274,6 +274,10 @@ FROM (
     GROUP BY slot_id
 ) x
 WHERE s.id = x.slot_id;
+
+-- Lưu ý: các tài khoản trên được tạo với password_hash = 'TEST_ACCOUNT_NO_LOGIN'
+-- và chưa đăng nhập được. Script gán mật khẩu demo nằm ngoài repo (gửi riêng),
+-- không đặt mật khẩu thật vào file được commit.
 
 COMMIT;
 
