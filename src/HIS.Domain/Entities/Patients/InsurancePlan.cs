@@ -8,5 +8,6 @@ public class InsurancePlan
     public string? ReferralType { get; set; }
 
     // Navigation properties
+    public ICollection<InsuranceCard> InsuranceCards { get; set; } = new List<InsuranceCard>();
     public ICollection<Invoice> Invoices { get; set; } = new List<Invoice>();
 }

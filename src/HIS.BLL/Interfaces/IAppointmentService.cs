@@ -1,10 +1,9 @@
 using HIS.Domain;
 
-namespace HIS.BLL.Interfaces
+namespace HIS.BLL.Interfaces;
+
+public interface IAppointmentService
 {
-    public interface IAppointmentService
-    {
-        Task<IEnumerable<Appointment>> GetAllAppointmentsAsync();
-        Task<Appointment?> GetAppointmentByIdAsync(int id);
-    }
+    Task<IEnumerable<Appointment>> GetAllAppointmentsAsync();
+    Task<Appointment?> GetAppointmentByIdAsync(int id);
 }

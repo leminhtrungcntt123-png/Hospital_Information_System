@@ -18,9 +18,12 @@ public class Account
     public Doctor? Doctor { get; set; }
     public Nurse? Nurse { get; set; }
     public DepartmentHead? DepartmentHead { get; set; }
+    public ICollection<DutyShift> DutyShifts { get; set; } = new List<DutyShift>();
+    public ICollection<DutyShift> AssignedDutyShifts { get; set; } = new List<DutyShift>();
     public ICollection<ScheduleException> ApprovedScheduleExceptions { get; set; } = new List<ScheduleException>();
     public ICollection<AppointmentStatusHistory> PerformedAppointmentHistories { get; set; } = new List<AppointmentStatusHistory>();
     public ICollection<LabResult> PerformedLabResults { get; set; } = new List<LabResult>();
+    public ICollection<Payment> Payments { get; set; } = new List<Payment>();
     public ICollection<Invoice> CashierInvoices { get; set; } = new List<Invoice>();
     public ICollection<AccessLog> AccessLogs { get; set; } = new List<AccessLog>();
 }

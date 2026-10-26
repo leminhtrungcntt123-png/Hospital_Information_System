@@ -20,11 +20,13 @@ static class Program
             .ConfigureAppConfiguration((context, config) =>
             {
                 config.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
+                config.AddJsonFile("appsettings.Development.json", optional: true, reloadOnChange: true);
+                config.AddEnvironmentVariables();
             })
             .ConfigureServices((context, services) =>
             {
                 var connectionString = context.Configuration.GetConnectionString("DefaultConnection")
-                    ?? "Host=localhost;Port=5432;Database=hospital_his;Username=postgres;Password=123456789";
+                    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found in configuration or environment variables.");
 
                 // Register DbContext with PostgreSQL & snake_case naming convention
                 services.AddDbContext<AppDbContext>(options =>
@@ -36,7 +38,13 @@ static class Program
                 // Register BLL services
                 services.AddScoped<IBookingService, BookingService>();
                 services.AddScoped<IAdminService, AdminService>();
+                services.AddScoped<IDashboardService, DashboardService>();
+                services.AddScoped<IPatientService, PatientService>();
+                services.AddScoped<IDoctorService, DoctorService>();
+                services.AddScoped<IAppointmentService, AppointmentService>();
                 services.AddScoped<IReceptionService, ReceptionService>();
+                services.AddScoped<IStaffService, StaffService>();
+                services.AddScoped<IDepartmentService, DepartmentService>();
 
                 // Register Forms
                 services.AddTransient<MainForm>();

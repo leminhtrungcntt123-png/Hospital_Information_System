@@ -2,6 +2,7 @@ using System.Drawing;
 using System.Text;
 using HIS.BLL;
 using HIS.BLL.DTOs;
+using HIS.BLL.Interfaces;
 using HIS.Domain;
 using HIS.WinForms.Dialogs;
 

@@ -10,9 +10,11 @@ public class AppDbContext : DbContext
     }
 
     public DbSet<Role> Roles => Set<Role>();
+    public DbSet<ServiceType> ServiceTypes => Set<ServiceType>();
     public DbSet<AppointmentStatus> AppointmentStatuses => Set<AppointmentStatus>();
     public DbSet<Account> Accounts => Set<Account>();
     public DbSet<Department> Departments => Set<Department>();
+    public DbSet<DutyShift> DutyShifts => Set<DutyShift>();
     public DbSet<ClinicRoom> ClinicRooms => Set<ClinicRoom>();
     public DbSet<Patient> Patients => Set<Patient>();
     public DbSet<Doctor> Doctors => Set<Doctor>();
@@ -21,6 +23,7 @@ public class AppDbContext : DbContext
     public DbSet<Medication> Medications => Set<Medication>();
     public DbSet<Service> Services => Set<Service>();
     public DbSet<InsurancePlan> InsurancePlans => Set<InsurancePlan>();
+    public DbSet<InsuranceCard> InsuranceCards => Set<InsuranceCard>();
     public DbSet<DoctorSchedule> DoctorSchedules => Set<DoctorSchedule>();
     public DbSet<ScheduleException> ScheduleExceptions => Set<ScheduleException>();
     public DbSet<AppointmentSlot> AppointmentSlots => Set<AppointmentSlot>();
@@ -33,6 +36,7 @@ public class AppDbContext : DbContext
     public DbSet<Prescription> Prescriptions => Set<Prescription>();
     public DbSet<PrescriptionItem> PrescriptionItems => Set<PrescriptionItem>();
     public DbSet<Invoice> Invoices => Set<Invoice>();
+    public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<InvoiceItem> InvoiceItems => Set<InvoiceItem>();
     public DbSet<AccessLog> AccessLogs => Set<AccessLog>();
 
@@ -47,7 +51,7 @@ public class AppDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        // Dòng lệnh tự động nạp toàn bộ 27 file cấu hình trong tất cả thư mục con ở trên
+        // Dòng lệnh tự động nạp toàn bộ 30 file cấu hình trong tất cả thư mục con
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
     }
 }

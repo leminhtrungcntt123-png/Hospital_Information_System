@@ -1,9 +1,10 @@
 using HIS.BLL.DTOs;
+using HIS.BLL.Interfaces;
 using HIS.DAL;
 using HIS.Domain;
 using Microsoft.EntityFrameworkCore;
 
-namespace HIS.BLL;
+namespace HIS.BLL.Services;
 
 public class ReceptionService : IReceptionService
 {
