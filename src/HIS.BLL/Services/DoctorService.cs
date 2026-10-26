@@ -1,9 +1,10 @@
 using HIS.DAL;
 using HIS.Domain;
 using HIS.BLL.DTOs;
+using HIS.BLL.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
-namespace HIS.BLL;
+namespace HIS.BLL.Services;
 
 public class DoctorService : IDoctorService
 {
@@ -14,7 +15,7 @@ public class DoctorService : IDoctorService
         _context = context;
     }
 
-    // Truy vấn danh sách bác sĩ
+    // Lấy danh sách bác sĩ kèm chuyên khoa và khoa phòng
     public async Task<IReadOnlyList<DoctorListItemDto>> GetDoctorsAsync(CancellationToken cancellationToken = default)
     {
         return await _context.Doctors

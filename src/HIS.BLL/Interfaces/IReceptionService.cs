@@ -1,7 +1,7 @@
 using HIS.Domain;
 using HIS.BLL.DTOs;
 
-namespace HIS.BLL;
+namespace HIS.BLL.Interfaces;
 
 public sealed class CreateReceptionRequest
 {

@@ -1,6 +1,6 @@
 using HIS.BLL.DTOs;
 
-namespace HIS.BLL;
+namespace HIS.BLL.Interfaces;
 
 public interface IDashboardService
 {

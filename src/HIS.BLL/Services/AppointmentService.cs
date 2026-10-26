@@ -1,12 +1,10 @@
 using HIS.BLL.Interfaces;
-using HIS.DAL;             // Thêm dùng AppDbContext
-using HIS.Domain;          // Thêm dùng Entity Appointment chuẩn từ Domain
+using HIS.DAL;
+using HIS.Domain;
 using Microsoft.EntityFrameworkCore;
 
-namespace HIS.BLL;
+namespace HIS.BLL.Services;
 
-// Dùng ApplicationDbContext (scaffold từ CSDL thật, HIS.DAL.Models)
-// vì interface đang trả về các entity của bộ model này.
 public class AppointmentService : IAppointmentService
 {
     private readonly AppDbContext _context;
@@ -16,7 +14,7 @@ public class AppointmentService : IAppointmentService
         _context = context;
     }
 
-    // Lấy danh sách tất cả lịch hẹn từ CSDL PostgreSQL
+    // Lấy danh sách tất cả lịch hẹn
     public async Task<IEnumerable<Appointment>> GetAllAppointmentsAsync()
     {
         return await _context.Appointments
@@ -28,7 +26,7 @@ public class AppointmentService : IAppointmentService
             .ToListAsync();
     }
 
-    // Lấy thông tin chi tiết 1 lịch hẹn theo ID
+    // Lấy thông tin chi tiết một lịch hẹn theo mã định danh (Id)
     public async Task<Appointment?> GetAppointmentByIdAsync(int id)
     {
         return await _context.Appointments

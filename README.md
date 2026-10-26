@@ -6,11 +6,11 @@ Hệ thống hỗ trợ đặt lịch khám và quản lý hồ sơ bệnh án (
 
 - **HIS.sln**: Solution chứa tất cả các dự án.
 - **src/HIS.Domain**: Định nghĩa các Entity nghiệp vụ (PascalCase, độc lập).
-- **src/HIS.DAL**: Data Access Layer, Entity Framework Core 8, `AppDbContext`, Npgsql PostgreSQL (snake_case convention).
+- **src/HIS.DAL**: Data Access Layer, Entity Framework Core 10, `AppDbContext`, Npgsql PostgreSQL (snake_case convention).
 - **src/HIS.BLL**: Business Logic Layer, triển khai các Service dùng chung giữa WinForms và WebApi/Web.
-- **src/HIS.WinForms**: Ứng dụng Desktop (Windows Forms App, .NET 8, Windows-only).
-- **src/HIS.WebApi**: RESTful API (ASP.NET Core Web API, .NET 8, Swagger).
-- **src/HIS.Web**: Ứng dụng Web dành cho bệnh nhân (ASP.NET Core Razor Pages, .NET 8).
+- **src/HIS.WinForms**: Ứng dụng Desktop (Windows Forms App, .NET 10, Windows-only).
+- **src/HIS.WebApi**: RESTful API (ASP.NET Core Web API, .NET 10, Swagger).
+- **src/HIS.Web**: Ứng dụng Web dành cho bệnh nhân (ASP.NET Core Razor Pages, .NET 10).
 - **tests/HIS.Tests**: Unit Test dự án (xUnit, Moq, InMemory EF Core).
 
 ## Yêu cầu môi trường

@@ -1,5 +1,6 @@
 using HIS.BLL;
 using HIS.BLL.DTOs;
+using HIS.BLL.Interfaces;
 using HIS.WinForms.Controls;
 using System.Drawing;
 using System.Windows.Forms;

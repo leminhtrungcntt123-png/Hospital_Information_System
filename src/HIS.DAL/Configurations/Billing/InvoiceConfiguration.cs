@@ -1,4 +1,4 @@
-﻿using HIS.Domain;
+using HIS.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -10,14 +10,15 @@ public class InvoiceConfiguration : IEntityTypeConfiguration<Invoice>
     {
         builder.ToTable("invoices", t =>
         {
-            t.HasCheckConstraint("ck_invoices_status", "status IN ('UNPAID','PAID')");
+            t.HasCheckConstraint("ck_invoices_status", "status IN ('UNPAID','PARTIALLY_PAID','PAID')");
             t.HasCheckConstraint("ck_invoices_payment_method", "payment_method IS NULL OR payment_method IN ('CASH','BANK_TRANSFER')");
         });
 
         builder.HasKey(i => i.Id);
         builder.Property(i => i.TotalAmount).HasPrecision(12, 2).HasDefaultValue(0m);
         builder.Property(i => i.InsuranceCoveredAmount).HasPrecision(12, 2).HasDefaultValue(0m);
-        builder.Property(i => i.PatientPaidAmount).HasPrecision(12, 2).HasDefaultValue(0m);
+        builder.Property(i => i.PatientAmount).HasPrecision(12, 2).HasDefaultValue(0m);
+        builder.Ignore(i => i.PatientPaidAmount);
         builder.Property(i => i.Status).HasMaxLength(20).HasDefaultValue("UNPAID").IsRequired();
         builder.Property(i => i.PaymentMethod).HasMaxLength(20);
         builder.Property(i => i.CreatedAt).HasDefaultValueSql("now()");
@@ -37,6 +38,11 @@ public class InvoiceConfiguration : IEntityTypeConfiguration<Invoice>
         builder.HasOne(i => i.InsurancePlan)
             .WithMany(ip => ip.Invoices)
             .HasForeignKey(i => i.InsurancePlanId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(i => i.InsuranceCard)
+            .WithMany(ic => ic.Invoices)
+            .HasForeignKey(i => i.InsuranceCardId)
             .OnDelete(DeleteBehavior.SetNull);
 
         builder.HasOne(i => i.Cashier)

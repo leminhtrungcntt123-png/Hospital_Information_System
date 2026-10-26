@@ -9,9 +9,12 @@ public class Invoice
     public Patient Patient { get; set; } = null!;
     public int? InsurancePlanId { get; set; }
     public InsurancePlan? InsurancePlan { get; set; }
+    public int? InsuranceCardId { get; set; }
+    public InsuranceCard? InsuranceCard { get; set; }
     public decimal TotalAmount { get; set; } = 0;
     public decimal InsuranceCoveredAmount { get; set; } = 0;
-    public decimal PatientPaidAmount { get; set; } = 0;
+    public decimal PatientAmount { get; set; } = 0;
+    public decimal PatientPaidAmount { get => PatientAmount; set => PatientAmount = value; }
     public string Status { get; set; } = "UNPAID";
     public string? PaymentMethod { get; set; }
     public int? CashierId { get; set; }
@@ -21,4 +24,5 @@ public class Invoice
 
     // Navigation properties
     public ICollection<InvoiceItem> InvoiceItems { get; set; } = new List<InvoiceItem>();
+    public ICollection<Payment> Payments { get; set; } = new List<Payment>();
 }

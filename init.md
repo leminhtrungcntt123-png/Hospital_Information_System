@@ -64,63 +64,94 @@ namespace HIS.Domain). Property kiểu dữ liệu hợp lý với PostgreSQL
 (DateTime cho TIMESTAMP, decimal cho NUMERIC, string cho VARCHAR/TEXT, 
 int cho INTEGER, bool cho BOOLEAN). Thêm navigation property (quan hệ) hợp lý 
 giữa các entity dựa theo khóa ngoại.
-- roles(Id,code name,decsription),
-- service_types(Id,code,name),
-- appointment_statuses(id, code ,name,sort_order,is_terminal),
-- Account (Id, Username, PasswordHash, roleID, IsActive, FailedLoginCount, 
+Tạo đúng 30 entity sau (mỗi entity 1 file .cs, namespace HIS.Domain):
+
+- Role (Id, Code, Name, Description)
+- ServiceType (Id, Code, Name)
+- AppointmentStatus (Id, Code, Name, SortOrder, IsTerminal)
+- Account (Id, Username, PasswordHash, RoleId, IsActive, FailedLoginCount,
   LockedUntil, CreatedAt, UpdatedAt)
 - Department (Id, Name, Description)
+- DutyShift (Id, AccountId, DepartmentId, StartTime, EndTime, Note,
+  AssignedBy, CreatedAt)
 - ClinicRoom (Id, DepartmentId, RoomName, RoomNumber)
-- Patient (Id, AccountId, FullName, DateOfBirth, Gender, NationalId, 
-  PhoneNumber, Address, InsuranceCardNumber, CreatedAt)
-- Doctor (Id, AccountId, DepartmentId, FullName, Specialty, LicenseNumber, 
+- Patient (Id, AccountId, FullName, DateOfBirth, Gender, NationalId,
+  PhoneNumber, Address, CreatedAt)
+- Doctor (Id, AccountId, DepartmentId, FullName, Specialty, LicenseNumber,
   AvgConsultationMinutes)
 - Nurse (Id, AccountId, DepartmentId, FullName)
 - DepartmentHead (Id, AccountId, DepartmentId, FullName)
 - Medication (Id, Name, ActiveIngredient, Strength, Unit, Price, IsActive)
-- Service (Id, Name, service_typeId, Price, IsActive)
+- Service (Id, Name, ServiceTypeId, Price, IsActive)
 - InsurancePlan (Id, Name, CoveragePct, ReferralType)
-- DoctorSchedule (Id, DoctorId, RoomId, DayOfWeek, Shift, StartTime, 
+- InsuranceCard (Id, PatientId, CardNumber, InsurancePlanId, RegisteredFacility,
+  IsRegisteredHere, ValidFrom, ValidTo, IsActive, CreatedAt)
+- DoctorSchedule (Id, DoctorId, RoomId, DayOfWeek, Shift, StartTime,
   EndTime, SlotDurationMinutes, EffectiveFrom, EffectiveTo, IsActive)
-- ScheduleException (Id, DoctorId, Date, Shift, Type, ReplacementDoctorId, 
+- ScheduleException (Id, DoctorId, Date, Shift, Type, ReplacementDoctorId,
   Reason, ApprovedBy, ApprovedAt, CreatedAt)
-- AppointmentSlot (Id, DoctorId, RoomId, StartTime, EndTime, Capacity, 
+- AppointmentSlot (Id, DoctorId, RoomId, StartTime, EndTime, Capacity,
   BookedCount, Status, Version)
-- Appointment (Id, AppointmentCode, PatientId, SlotId, RoomId, StatusID, 
-  BookingChannel, VisitType, PriorityLevel, QueueNumber, Reason, 
+- Appointment (Id, AppointmentCode, PatientId, SlotId, RoomId, StatusId,
+  BookingChannel, VisitType, PriorityLevel, QueueNumber, Reason,
   HoldUntil, ParentAppointmentId, CreatedAt, UpdatedAt)
-- AppointmentStatusHistory (Id, AppointmentId, OldAppointment_StatusId, NewApointment_StatusId, 
+- AppointmentStatusHistory (Id, AppointmentId, OldStatusId, NewStatusId,
   PerformedBy, ChangedAt)
-- VitalSigns (Id, AppointmentId, Pulse, SystolicBp, DiastolicBp, 
+- VitalSigns (Id, AppointmentId, Pulse, SystolicBp, DiastolicBp,
   Temperature, RespiratoryRate, Spo2, Weight, Height, RecordedBy, RecordedAt)
-- MedicalRecord (Id, AppointmentId, DoctorId, Symptoms, ClinicalExamination, 
-  PrimaryDiagnosisCode, PrimaryDiagnosisDesc, SecondaryDiagnosis, 
+- MedicalRecord (Id, AppointmentId, DoctorId, Symptoms, ClinicalExamination,
+  PrimaryDiagnosisCode, PrimaryDiagnosisDesc, SecondaryDiagnosis,
   Conclusion, CreatedAt, UpdatedAt)
 - LabOrder (Id, MedicalRecordId, ServiceId, Note, Status, CreatedAt)
 - LabResult (Id, OrderId, Result, PerformedBy, RecordedAt)
 - Prescription (Id, MedicalRecordId, PrescribedDate, Note)
-- PrescriptionItem (Id, PrescriptionId, MedicationId, Dosage, Quantity, 
+- PrescriptionItem (Id, PrescriptionId, MedicationId, Dosage, Quantity,
   DurationDays, UsageInstructions)
-- Invoice (Id, AppointmentId, PatientId, InsurancePlanId, TotalAmount, 
-  InsuranceCoveredAmount, PatientPaidAmount, Status, PaymentMethod, 
-  CashierId, CreatedAt, PaidAt)
+- Invoice (Id, AppointmentId, PatientId, InsurancePlanId, InsuranceCardId,
+  TotalAmount, InsuranceCoveredAmount, PatientAmount, Status, CreatedAt)
+- Payment (Id, InvoiceId, Amount, PaymentType, PaymentMethod, CashierId,
+  Note, PaidAt)
 - InvoiceItem (Id, InvoiceId, Category, Description, Amount)
 - AccessLog (Id, AccountId, MedicalRecordId, Action, OccurredAt, IpAddress)
-
 ## 5. CẤU HÌNH TRONG AppDbContext (HIS.DAL)
-
-Viết AppDbContext với DbSet cho tất cả entity trên. Trong OnModelCreating,
+Viết AppDbContext với DbSet cho tất cả 30 entity trên. Trong OnModelCreating,
 cấu hình Fluent API (KHÔNG dùng Data Annotation) cho các ràng buộc sau:
 
-- Unique constraint: Account.Username, Patient.AccountId, Doctor.AccountId, 
-  Nurse.AccountId, DepartmentHead.AccountId, DepartmentHead.DepartmentId, 
-  Appointment.AppointmentCode, AppointmentSlot(DoctorId, StartTime) composite unique
-- Check constraint cho các cột enum-string (Account.Role, Appointment.Status, 
-  AppointmentSlot.Status, v.v. — dùng HasCheckConstraint với đúng danh sách 
-  giá trị đã liệt kê ở schema SQL bên dưới)
-- Default value: CreatedAt = now(), IsActive = true, Status mặc định 
-  tương ứng từng bảng
-- Concurrency token: AppointmentSlot.Version dùng IsConcurrencyToken()
+- Mỗi entity gọi ToTable("...") tường minh đúng tên bảng snake_case trong SQL.
+- Unique: Role.Code, ServiceType.Code, AppointmentStatus.Code, Account.Username,
+  Patient.AccountId, Patient.NationalId, Doctor.AccountId, Nurse.AccountId,
+  DepartmentHead.AccountId, DepartmentHead.DepartmentId, InsuranceCard.CardNumber,
+  Appointment.AppointmentCode, VitalSigns.AppointmentId, MedicalRecord.AppointmentId,
+  LabResult.OrderId, Invoice.AppointmentId, AppointmentSlot(DoctorId, StartTime).
+- Check constraint (HasCheckConstraint, danh sách IN không chứa NULL):
+  Patient.Gender (MALE, FEMALE, OTHER); InsurancePlan.ReferralType (IN_NETWORK, OUT_OF_NETWORK);
+  DoctorSchedule.DayOfWeek (0 đến 6, 0 = Chủ nhật); DoctorSchedule.Shift và
+  ScheduleException.Shift (MORNING, AFTERNOON, EVENING);
+  ScheduleException.Type (LEAVE, TRAINING, SURGERY, SHIFT_SWAP);
+  AppointmentSlot.Status (AVAILABLE, FULL, BLOCKED) và BookedCount <= Capacity;
+  Appointment.BookingChannel (WEB, ON_SITE); Appointment.VisitType (SCHEDULED, WALK_IN);
+  Appointment.PriorityLevel (0 đến 3); LabOrder.Status (PENDING, COMPLETED);
+  Invoice.Status (UNPAID, PARTIALLY_PAID, PAID); Payment.PaymentType (DEPOSIT, PAYMENT, REFUND);
+  Payment.PaymentMethod (CASH, BANK_TRANSFER); Payment.Amount > 0;
+  InvoiceItem.Category (EXAMINATION, MEDICATION, SERVICE);
+  InsuranceCard.ValidTo >= InsuranceCard.ValidFrom; DutyShift.EndTime > DutyShift.StartTime.
+- Bảng lookup Role, ServiceType, AppointmentStatus: Id dùng ValueGeneratedNever, seed bằng
+  HasData với id cố định bên dưới. Tạo enum RoleId, ServiceTypeId, AppointmentStatusId trong
+  HIS.Domain, khớp từng id với dữ liệu seed.
+- Default: CreatedAt = now(), IsActive = true. Appointment.StatusId không có default,
+  code BLL phải gán Pending khi tạo.
+- Concurrency token: AppointmentSlot.Version dùng IsConcurrencyToken().
+
+Dữ liệu seed:
+roles: 1 ADMIN "Quản trị viên", 2 DEPARTMENT_HEAD "Trưởng khoa", 3 DOCTOR "Bác sĩ",
+       4 NURSE "Y tá / Lễ tân", 5 PATIENT "Bệnh nhân"
+service_types: 1 EXAMINATION "Khám bệnh", 2 LAB_TEST "Xét nghiệm", 3 IMAGING "Chẩn đoán hình ảnh"
+appointment_statuses (id, code, name, sort_order, is_terminal):
+  1 PENDING "Chờ xác nhận" 1 false | 2 CONFIRMED "Đã xác nhận" 2 false
+  3 CHECKED_IN "Đã check-in" 3 false | 4 READY_FOR_DOCTOR "Chờ bác sĩ" 4 false
+  5 IN_PROGRESS "Đang khám" 5 false | 6 COMPLETED "Hoàn thành" 6 true
+  7 CANCELLED "Đã hủy" 7 true | 8 NO_SHOW "Không đến" 8 true
+  9 EXPIRED "Hết hạn giữ chỗ" 9 true
 
 Tham khảo đúng schema SQL đầy đủ sau để lấy chính xác kiểu dữ liệu, 
 độ dài VARCHAR, và danh sách giá trị CHECK constraint:
@@ -172,6 +203,17 @@ CREATE TABLE departments (
     name        VARCHAR(100) NOT NULL,
     description VARCHAR(255)
 );
+CREATE TABLE duty_shifts (
+    id             INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    account_id     INTEGER NOT NULL REFERENCES accounts(id),   -- bác sĩ hoặc y tá được phân trực
+    department_id  INTEGER NOT NULL REFERENCES departments(id),
+    start_time     TIMESTAMP NOT NULL,                         -- TIMESTAMP để trực đêm qua nửa đêm
+    end_time       TIMESTAMP NOT NULL,
+    note           VARCHAR(255),
+    assigned_by    INTEGER REFERENCES accounts(id),            -- Trưởng khoa phân công
+    created_at     TIMESTAMP NOT NULL DEFAULT now(),
+    CONSTRAINT ck_duty_time CHECK (end_time > start_time)
+);
 
 CREATE TABLE clinic_rooms (
     id              INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -189,7 +231,6 @@ CREATE TABLE patients (
     national_id               VARCHAR(20) UNIQUE,
     phone_number              VARCHAR(15) NOT NULL,
     address                   VARCHAR(255),
-    insurance_card_number     VARCHAR(20),
     created_at                TIMESTAMP NOT NULL DEFAULT now()
 );
 
@@ -244,14 +285,29 @@ CREATE TABLE insurance_plans (
     referral_type   VARCHAR(20) CHECK (referral_type IN ('IN_NETWORK','OUT_OF_NETWORK'))
 );
 
+CREATE TABLE insurance_cards (
+    id                   INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    patient_id           INTEGER NOT NULL REFERENCES patients(id),
+    card_number          VARCHAR(20) NOT NULL UNIQUE,
+    insurance_plan_id    INTEGER NOT NULL REFERENCES insurance_plans(id), -- mức hưởng của thẻ
+    registered_facility  VARCHAR(150),                      -- nơi đăng ký KCB ban đầu
+    is_registered_here   BOOLEAN NOT NULL DEFAULT FALSE,    -- đăng ký tại bệnh viện này = đúng tuyến
+    valid_from           DATE NOT NULL,
+    valid_to             DATE NOT NULL,
+    is_active            BOOLEAN NOT NULL DEFAULT TRUE,     -- false khi thẻ cũ bị thay
+    created_at           TIMESTAMP NOT NULL DEFAULT now(),
+    CONSTRAINT ck_insurance_dates CHECK (valid_to >= valid_from)
+);
+
+
 -- ─── SCHEDULING ENGINE ────────────────────────────────
 
 CREATE TABLE doctor_schedules (
     id                      INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     doctor_id               INTEGER NOT NULL REFERENCES doctors(id),
     room_id                 INTEGER NOT NULL REFERENCES clinic_rooms(id),
-    day_of_week             INTEGER CHECK (day_of_week BETWEEN 1 AND 7), -- 1=CN..7=T7
-    shift                   VARCHAR(10) NOT NULL CHECK (shift IN ('MORNING','AFTERNOON')),
+    day_of_week             INTEGER CHECK (day_of_week BETWEEN 0 AND 6), -- 1=CN..7=T7
+    shift                   VARCHAR(10) NOT NULL CHECK (shift IN ('MORNING','AFTERNOON','EVENING')),
     start_time              TIME NOT NULL,
     end_time                TIME NOT NULL,
     slot_duration_minutes   INTEGER NOT NULL DEFAULT 15,
@@ -264,7 +320,7 @@ CREATE TABLE schedule_exceptions (
     id                      INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     doctor_id               INTEGER NOT NULL REFERENCES doctors(id),
     date                    DATE NOT NULL,
-    shift                   VARCHAR(10) CHECK (shift IN ('MORNING','AFTERNOON', NULL)),
+	shift  					VARCHAR(10) CHECK (shift IN ('MORNING','AFTERNOON','EVENING')),
     type                    VARCHAR(20) NOT NULL
                             CHECK (type IN ('LEAVE','TRAINING','SURGERY','SHIFT_SWAP')),
     replacement_doctor_id   INTEGER REFERENCES doctors(id),
@@ -385,23 +441,31 @@ CREATE TABLE prescription_items (
 );
 
 -- ─── BILLING ───────────────────────────────────────────
-
 CREATE TABLE invoices (
     id                          INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     appointment_id              INTEGER NOT NULL UNIQUE REFERENCES appointments(id),
     patient_id                  INTEGER NOT NULL REFERENCES patients(id),
     insurance_plan_id           INTEGER REFERENCES insurance_plans(id),
+    insurance_card_id           INTEGER REFERENCES insurance_cards(id),
     total_amount                NUMERIC(12,2) NOT NULL DEFAULT 0,
     insurance_covered_amount    NUMERIC(12,2) NOT NULL DEFAULT 0,
-    patient_paid_amount         NUMERIC(12,2) NOT NULL DEFAULT 0,
+    patient_amount              NUMERIC(12,2) NOT NULL DEFAULT 0,   -- tiền bệnh nhân phải trả sau BHYT
     status                      VARCHAR(20) NOT NULL DEFAULT 'UNPAID'
-                                CHECK (status IN ('UNPAID','PAID')),
-    payment_method              VARCHAR(20) CHECK (payment_method IN ('CASH','BANK_TRANSFER', NULL)),
-    cashier_id                  INTEGER REFERENCES accounts(id),
-    created_at                  TIMESTAMP NOT NULL DEFAULT now(),
-    paid_at                     TIMESTAMP
+                                CHECK (status IN ('UNPAID','PARTIALLY_PAID','PAID')),
+    created_at                  TIMESTAMP NOT NULL DEFAULT now()
 );
 
+CREATE TABLE payments (
+    id              INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    invoice_id      INTEGER NOT NULL REFERENCES invoices(id),
+    amount          NUMERIC(12,2) NOT NULL CHECK (amount > 0),
+    payment_type    VARCHAR(15) NOT NULL DEFAULT 'PAYMENT'
+                    CHECK (payment_type IN ('DEPOSIT','PAYMENT','REFUND')),
+    payment_method  VARCHAR(20) NOT NULL CHECK (payment_method IN ('CASH','BANK_TRANSFER')),
+    cashier_id      INTEGER REFERENCES accounts(id),
+    note            VARCHAR(255),
+    paid_at         TIMESTAMP NOT NULL DEFAULT now()
+);
 CREATE TABLE invoice_items (
     id          INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     invoice_id  INTEGER NOT NULL REFERENCES invoices(id),
@@ -428,6 +492,10 @@ CREATE INDEX idx_appointments_patient ON appointments (patient_id);
 CREATE INDEX idx_appointments_status_id ON appointments (status_id);
 CREATE INDEX idx_records_appointment ON medical_records (appointment_id);
 CREATE INDEX idx_access_logs_account ON access_logs (account_id);
+CREATE INDEX idx_insurance_cards_patient ON insurance_cards (patient_id, valid_to);
+CREATE INDEX idx_payments_invoice ON payments (invoice_id);
+CREATE INDEX idx_duty_shifts_account ON duty_shifts (account_id, start_time);
+
 ## 6. DEPENDENCY INJECTION
 
 Trong HIS.WinForms/Program.cs: dựng Host (Generic Host hoặc 

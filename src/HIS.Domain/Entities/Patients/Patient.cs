@@ -15,6 +15,7 @@ public class Patient
     public DateTime CreatedAt { get; set; }
 
     // Navigation properties
+    public ICollection<InsuranceCard> InsuranceCards { get; set; } = new List<InsuranceCard>();
     public ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
     public ICollection<Invoice> Invoices { get; set; } = new List<Invoice>();
 }

@@ -1,9 +1,10 @@
 using HIS.DAL;
 using HIS.Domain;
 using HIS.BLL.DTOs;
+using HIS.BLL.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
-namespace HIS.BLL;
+namespace HIS.BLL.Services;
 
 public class DashboardService : IDashboardService
 {
@@ -14,7 +15,7 @@ public class DashboardService : IDashboardService
         _context = context;
     }
 
-    // Lấy các số liệu tổng quan hiển thị trên 4 thẻ Stat Cards
+    // Thống kê tổng quan hệ thống (bệnh nhân, bác sĩ, khoa phòng, lịch hẹn trong ngày)
     public async Task<DashboardStatsDto> GetDashboardStatsAsync(CancellationToken cancellationToken = default)
     {
         var today = DateTime.Today;
@@ -45,7 +46,7 @@ public class DashboardService : IDashboardService
                 a.Patient.FullName,
                 a.Slot!.StartTime,
                 a.Status.Name,
-                a.BookingChannel.ToChannelVietnamese())) // Dùng Extension Method trong Domain
+                a.BookingChannel.ToChannelVietnamese()))
             .ToListAsync(cancellationToken);
     }
 }

@@ -26,7 +26,12 @@ public partial class MainForm : Form
     private readonly IBookingService _bookingService;
     private readonly IAdminService _adminService;
     private readonly IReceptionService _receptionService;
+    private readonly IStaffService? _staffService;
+    private readonly IDepartmentService? _departmentService;
     private UserControl? _currentPage;
+
+    private readonly ToolStripMenuItem _menuItemStaff = new("Quản lý nhân sự và tài khoản");
+    private readonly ToolStripMenuItem _menuItemDepartment = new("Quản lý khoa và phòng");
 
     [DllImport("user32.dll")]
     private static extern bool ReleaseCapture();
@@ -35,20 +40,29 @@ public partial class MainForm : Form
     private static extern IntPtr SendMessage(IntPtr hWnd, int msg, int wParam, int lParam);
 
     // Constructor không tham số để Visual Studio Designer có thể mở form
-    public MainForm() : this(null!, null!, null!)
+    public MainForm() : this(null!, null!, null!, null!, null!)
     {
     }
 
     // Constructor dùng Dependency Injection khi chạy thật
-    public MainForm(IBookingService bookingService, IAdminService adminService, IReceptionService receptionService)
+    public MainForm(
+        IBookingService bookingService,
+        IAdminService adminService,
+        IReceptionService receptionService,
+        IStaffService staffService,
+        IDepartmentService departmentService)
     {
         _bookingService = bookingService;
         _adminService = adminService;
         _receptionService = receptionService;
+        _staffService = staffService;
+        _departmentService = departmentService;
 
         InitializeComponent();
         DoubleBuffered = true;
         KeyPreview = true;
+
+        BuildSessionMenu();
 
         WireNavigation();
         WireToolbar();
@@ -170,6 +184,12 @@ public partial class MainForm : Form
         WindowState = FormWindowState.Maximized;
     }
 
+    private void BuildSessionMenu()
+    {
+        menuSystem.Items.Add(_menuItemStaff);
+        menuSystem.Items.Add(_menuItemDepartment);
+    }
+
     private void WireNavigation()
     {
         btnNavDashboard.Click += (_, _) => ShowDashboard();
@@ -206,6 +226,8 @@ public partial class MainForm : Form
 
         btnMenuSystem.Click += (_, _) => menuSystem.Show(btnMenuSystem, new Point(0, btnMenuSystem.Height));
         menuItemAdmin.Click += (_, _) => ShowAdminPage();
+        _menuItemStaff.Click += (_, _) => ShowStaffPage();
+        _menuItemDepartment.Click += (_, _) => ShowDepartmentPage();
         btnSettings.Click += (_, _) => ShowAdminPage();
 
         btnHelp.Click += (_, _) => MessageBox.Show(
@@ -358,6 +380,42 @@ public partial class MainForm : Form
         SetActiveNav(null);
         lblBreadcrumb.Text = "HIS   ›   Quản lý hệ thống";
         ShowPage(new AdminPage(_adminService));
+    }
+
+    private void ShowStaffPage()
+    {
+        if (_staffService == null)
+        {
+            MessageBox.Show(
+                this,
+                "Trang nhân sự cần kết nối cơ sở dữ liệu.",
+                "Nhân sự",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+            return;
+        }
+
+        SetActiveNav(null);
+        lblBreadcrumb.Text = "HIS   ›   Nhân sự";
+        ShowPage(new StaffPage(_staffService));
+    }
+
+    private void ShowDepartmentPage()
+    {
+        if (_departmentService == null)
+        {
+            MessageBox.Show(
+                this,
+                "Trang quản lý khoa và phòng cần kết nối cơ sở dữ liệu.",
+                "Quản lý khoa và phòng",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+            return;
+        }
+
+        SetActiveNav(null);
+        lblBreadcrumb.Text = "HIS   ›   Quản lý khoa và phòng";
+        ShowPage(new DepartmentPage(_departmentService));
     }
 
     private void ShowPage(UserControl page)
