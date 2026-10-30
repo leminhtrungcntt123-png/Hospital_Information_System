@@ -45,6 +45,7 @@ static class Program
                 services.AddScoped<IReceptionService, ReceptionService>();
                 services.AddScoped<IStaffService, StaffService>();
                 services.AddScoped<IDepartmentService, DepartmentService>();
+                services.AddScoped<ISchedulingService, SchedulingService>();
 
                 // Register Forms
                 services.AddTransient<MainForm>();
