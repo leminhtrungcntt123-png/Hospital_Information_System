@@ -1,24 +1,47 @@
+using HIS.BLL.DTOs;
+using HIS.BLL.Security;
+
 namespace HIS.WinForms;
 
-public static class UserSession
+public sealed class UserSession
 {
     public const string AdminRoleCode = "ADMIN";
 
-    public static string Username { get; private set; } = "admin";
-    public static string FullName { get; private set; } = "Quản trị viên";
-    public static string RoleCode { get; private set; } = AdminRoleCode;
-    public static string RoleName { get; private set; } = "Quản trị hệ thống";
+    public static UserSession? Current { get; private set; }
 
-    public static bool IsAdmin => string.Equals(RoleCode, AdminRoleCode, StringComparison.OrdinalIgnoreCase);
+    public AuthUserDto? User { get; private set; }
 
-    public static void SignIn(string username, string fullName, string roleCode, string roleName)
+    public bool IsAuthenticated => User != null;
+
+    public string Username => User?.Username ?? string.Empty;
+
+    public string FullName => User?.DisplayName ?? string.Empty;
+
+    public string RoleCode => User?.RoleCode ?? string.Empty;
+
+    public string RoleName => User?.RoleName ?? string.Empty;
+
+    public bool IsAdmin => string.Equals(RoleCode, AdminRoleCode, StringComparison.OrdinalIgnoreCase);
+
+    public UserSession()
     {
-        Username = username;
-        FullName = fullName;
-        RoleCode = roleCode;
-        RoleName = roleName;
+        Current = this;
     }
 
-    // Khởi tạo phiên làm việc mặc định quyền Quản trị viên (Admin)
-    public static void UseMockAdmin() => SignIn("admin", "Quản trị viên", AdminRoleCode, "Quản trị hệ thống");
+    public void SignIn(AuthUserDto user)
+    {
+        User = user;
+        Current = this;
+    }
+
+    public void SignOut()
+    {
+        User = null;
+        if (ReferenceEquals(Current, this))
+        {
+            Current = null;
+        }
+    }
+
+    public bool Can(string module) => User?.Permissions.Contains(module) == true;
 }

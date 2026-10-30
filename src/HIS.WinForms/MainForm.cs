@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using HIS.BLL;
 using HIS.BLL.DTOs;
 using HIS.BLL.Interfaces;
+using HIS.BLL.Security;
 using HIS.WinForms.Controls;
 using HIS.WinForms.Pages;
 
@@ -28,7 +29,11 @@ public partial class MainForm : Form
     private readonly IReceptionService _receptionService;
     private readonly IStaffService? _staffService;
     private readonly IDepartmentService? _departmentService;
+    private readonly IAuthService? _authService;
+    private readonly UserSession? _session;
     private UserControl? _currentPage;
+
+    public bool LogoutRequested { get; private set; }
 
     private readonly ToolStripMenuItem _menuItemStaff = new("Quản lý nhân sự và tài khoản");
     private readonly ToolStripMenuItem _menuItemDepartment = new("Quản lý khoa và phòng");
@@ -40,7 +45,7 @@ public partial class MainForm : Form
     private static extern IntPtr SendMessage(IntPtr hWnd, int msg, int wParam, int lParam);
 
     // Constructor không tham số để Visual Studio Designer có thể mở form
-    public MainForm() : this(null!, null!, null!, null!, null!)
+    public MainForm() : this(null!, null!, null!, null!, null!, null!, null!)
     {
     }
 
@@ -50,13 +55,17 @@ public partial class MainForm : Form
         IAdminService adminService,
         IReceptionService receptionService,
         IStaffService staffService,
-        IDepartmentService departmentService)
+        IDepartmentService departmentService,
+        IAuthService authService,
+        UserSession session)
     {
         _bookingService = bookingService;
         _adminService = adminService;
         _receptionService = receptionService;
         _staffService = staffService;
         _departmentService = departmentService;
+        _authService = authService;
+        _session = session;
 
         InitializeComponent();
         DoubleBuffered = true;
@@ -71,6 +80,9 @@ public partial class MainForm : Form
         lblBadgeReception.BringToFront();
         lblBadgeExamination.BringToFront();
 
+        ApplySession();
+        ApplyPermissions();
+
         ShowDashboard();
 
         if (LicenseManager.UsageMode == LicenseUsageMode.Runtime)
@@ -80,6 +92,12 @@ public partial class MainForm : Form
             lblBadgeReception.Visible = false;
             Shown += async (_, _) => await UpdateReceptionBadgeAsync();
         }
+    }
+
+    protected override void OnLoad(EventArgs e)
+    {
+        base.OnLoad(e);
+        ApplyPermissions();
     }
 
     protected override void OnHandleCreated(EventArgs e)
@@ -237,7 +255,7 @@ public partial class MainForm : Form
             MessageBoxButtons.OK,
             MessageBoxIcon.Information);
 
-        btnLogout.Click += (_, _) =>
+        btnLogout.Click += async (_, _) =>
         {
             DialogResult result = MessageBox.Show(
                 this,
@@ -246,10 +264,26 @@ public partial class MainForm : Form
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Question);
 
-            if (result == DialogResult.Yes)
+            if (result != DialogResult.Yes)
             {
-                Close();
+                return;
             }
+
+            try
+            {
+                if (_authService != null && _session?.User is { } user)
+                {
+                    await _authService.LogoutAsync(user.AccountId);
+                }
+            }
+            catch
+            {
+                // Ghi nhật ký lỗi không được chặn thao tác đăng xuất
+            }
+
+            _session?.SignOut();
+            LogoutRequested = true;
+            Close();
         };
     }
 
@@ -309,6 +343,11 @@ public partial class MainForm : Form
 
     private void ShowReceptionPage()
     {
+        if (!EnsureAccess(RolePermissions.Reception))
+        {
+            return;
+        }
+
         if (_receptionService == null)
         {
             MessageBox.Show(
@@ -335,7 +374,7 @@ public partial class MainForm : Form
 
     private async Task UpdateReceptionBadgeAsync()
     {
-        if (_receptionService == null)
+        if (_receptionService == null || !CanAccess(RolePermissions.Reception))
         {
             return;
         }
@@ -353,12 +392,24 @@ public partial class MainForm : Form
 
     private void UpdateReceptionBadge(int waitingCount)
     {
+        if (!CanAccess(RolePermissions.Reception))
+        {
+            lblBadgeReception.Visible = false;
+            return;
+        }
+
         lblBadgeReception.Text = Math.Min(waitingCount, 99).ToString();
         lblBadgeReception.Visible = waitingCount > 0;
     }
 
     private void ShowPlaceholder(string key, string title, string subtitle)
     {
+        string? module = ModuleForKey(key);
+        if (module != null && !EnsureAccess(module))
+        {
+            return;
+        }
+
         SetActiveNav(GetNavButton(key));
         lblBreadcrumb.Text = $"HIS   ›   {title}";
         ShowPage(new PlaceholderPage(title, subtitle));
@@ -366,6 +417,11 @@ public partial class MainForm : Form
 
     private void ShowAdminPage()
     {
+        if (!EnsureAccess(RolePermissions.Admin))
+        {
+            return;
+        }
+
         if (_adminService == null)
         {
             MessageBox.Show(
@@ -384,6 +440,11 @@ public partial class MainForm : Form
 
     private void ShowStaffPage()
     {
+        if (!EnsureAccess(RolePermissions.Admin))
+        {
+            return;
+        }
+
         if (_staffService == null)
         {
             MessageBox.Show(
@@ -402,6 +463,11 @@ public partial class MainForm : Form
 
     private void ShowDepartmentPage()
     {
+        if (!EnsureAccess(RolePermissions.Admin))
+        {
+            return;
+        }
+
         if (_departmentService == null)
         {
             MessageBox.Show(
@@ -493,6 +559,207 @@ public partial class MainForm : Form
         "reports" => btnNavReports,
         _ => null
     };
+
+    private void ApplySession()
+    {
+        if (_session?.User is not { } user)
+        {
+            return;
+        }
+
+        accountName.Text = user.DisplayName;
+        accountRole.Text = user.RoleName;
+        accountAvatar.Text = GetInitials(user.DisplayName);
+    }
+
+    private void ApplyPermissions()
+    {
+        bool isAdmin = _session?.IsAdmin ?? false;
+
+        bool canDashboard = CanAccess(RolePermissions.Dashboard);
+        bool canReception = CanAccess(RolePermissions.Reception);
+        bool canPatients = CanAccess(RolePermissions.Patients);
+        bool canExamination = CanAccess(RolePermissions.Examination);
+        bool canInpatient = CanAccess(RolePermissions.Inpatient);
+        bool canPharmacy = CanAccess(RolePermissions.Pharmacy);
+        bool canReports = CanAccess(RolePermissions.Reports);
+
+        btnMenuSystem.Visible = isAdmin;
+        menuItemAdmin.Visible = isAdmin;
+        _menuItemStaff.Visible = isAdmin;
+        _menuItemDepartment.Visible = isAdmin;
+        btnSettings.Visible = isAdmin;
+        btnHelp.Top = isAdmin ? 51 : 9;
+
+        btnNewReception.Visible = canReception;
+
+        txtGlobalSearch.Enabled = canPatients;
+        if (!txtGlobalSearch.Enabled)
+        {
+            txtGlobalSearch.PlaceholderText = "Không có quyền tra cứu bệnh nhân";
+        }
+
+        LayoutMenuBar(isAdmin);
+        LayoutNavigation(canDashboard, canReception, canPatients, canExamination, canInpatient, canPharmacy, canReports);
+    }
+
+    private void LayoutMenuBar(bool isAdmin)
+    {
+        int x = 7;
+
+        foreach (Button button in new[] { btnMenuSystem, btnMenuBusiness, btnMenuCatalog, btnMenuReports, btnMenuHelp })
+        {
+            if (button == btnMenuSystem && !isAdmin)
+            {
+                continue;
+            }
+
+            button.Left = x;
+            x += button.Width;
+        }
+    }
+
+    private void LayoutNavigation(
+        bool canDashboard,
+        bool canReception,
+        bool canPatients,
+        bool canExamination,
+        bool canInpatient,
+        bool canPharmacy,
+        bool canReports)
+    {
+        int y = 5;
+
+        y = PlaceNavLabel(lblNavGroupOverview, y, canDashboard);
+        y = PlaceNavButton(btnNavDashboard, null, y, canDashboard);
+
+        bool clinicalVisible = canReception || canPatients || canExamination || canInpatient;
+
+        if (clinicalVisible)
+        {
+            y += 12;
+            y = PlaceNavLabel(lblNavGroupClinical, y, true);
+            y = PlaceNavButton(btnNavReception, lblBadgeReception, y, canReception);
+            y = PlaceNavButton(btnNavPatients, null, y, canPatients);
+            y = PlaceNavButton(btnNavExamination, lblBadgeExamination, y, canExamination);
+            y = PlaceNavButton(btnNavInpatient, null, y, canInpatient);
+        }
+        else
+        {
+            lblNavGroupClinical.Visible = false;
+            btnNavReception.Visible = false;
+            btnNavPatients.Visible = false;
+            btnNavExamination.Visible = false;
+            btnNavInpatient.Visible = false;
+            lblBadgeReception.Visible = false;
+            lblBadgeExamination.Visible = false;
+        }
+
+        bool paraclinicalVisible = canPharmacy || canReports;
+
+        if (paraclinicalVisible)
+        {
+            y += 12;
+            y = PlaceNavLabel(lblNavGroupParaclinical, y, true);
+            y = PlaceNavButton(btnNavPharmacy, null, y, canPharmacy);
+            y = PlaceNavButton(btnNavReports, null, y, canReports);
+        }
+        else
+        {
+            lblNavGroupParaclinical.Visible = false;
+            btnNavPharmacy.Visible = false;
+            btnNavReports.Visible = false;
+        }
+    }
+
+    private static int PlaceNavLabel(Label label, int y, bool visible)
+    {
+        label.Visible = visible;
+        if (!visible)
+        {
+            return y;
+        }
+
+        label.Top = y;
+        label.BringToFront();
+        return y + 24;
+    }
+
+    private static int PlaceNavButton(Button button, Label? badge, int y, bool visible)
+    {
+        button.Visible = visible;
+
+        if (!visible)
+        {
+            if (badge != null)
+            {
+                badge.Visible = false;
+            }
+
+            return y;
+        }
+
+        button.Top = y;
+        button.BringToFront();
+        if (badge != null)
+        {
+            badge.Top = y + 16;
+            badge.BringToFront();
+        }
+
+        return y + 55;
+    }
+
+    private bool CanAccess(string module) => _session?.Can(module) ?? true;
+
+    private bool EnsureAccess(string module)
+    {
+        if (CanAccess(module))
+        {
+            return true;
+        }
+
+        MessageBox.Show(
+            this,
+            "Bạn không có quyền truy cập chức năng này.",
+            "Phân quyền",
+            MessageBoxButtons.OK,
+            MessageBoxIcon.Warning);
+
+        return false;
+    }
+
+    private static string? ModuleForKey(string key) => key switch
+    {
+        "dashboard" => RolePermissions.Dashboard,
+        "reception" => RolePermissions.Reception,
+        "patients" => RolePermissions.Patients,
+        "examination" => RolePermissions.Examination,
+        "inpatient" => RolePermissions.Inpatient,
+        "pharmacy" => RolePermissions.Pharmacy,
+        "reports" => RolePermissions.Reports,
+        "admin" => RolePermissions.Admin,
+        _ => null
+    };
+
+    private static string GetInitials(string name)
+    {
+        string[] parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+        if (parts.Length == 0)
+        {
+            return "?";
+        }
+
+        if (parts.Length == 1)
+        {
+            return parts[0].Length >= 2
+                ? parts[0][..2].ToUpperInvariant()
+                : parts[0].ToUpperInvariant();
+        }
+
+        return $"{parts[^2][0]}{parts[^1][0]}".ToUpperInvariant();
+    }
 
     private void ClockTimer_Tick(object? sender, EventArgs e) => UpdateClock();
 
