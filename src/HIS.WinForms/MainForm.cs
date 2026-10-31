@@ -37,6 +37,9 @@ public partial class MainForm : Form
 
     private readonly ToolStripMenuItem _menuItemStaff = new("Quản lý nhân sự và tài khoản");
     private readonly ToolStripMenuItem _menuItemDepartment = new("Quản lý khoa và phòng");
+    private readonly ToolStripMenuItem _menuItemScheduling = new("Quản lý lịch khám và sinh slot");
+    private readonly ISchedulingService? _schedulingService;
+    private readonly NavButton _btnNavScheduling = new();
 
     [DllImport("user32.dll")]
     private static extern bool ReleaseCapture();
@@ -206,6 +209,7 @@ public partial class MainForm : Form
     {
         menuSystem.Items.Add(_menuItemStaff);
         menuSystem.Items.Add(_menuItemDepartment);
+        menuSystem.Items.Add(_menuItemScheduling);
     }
 
     private void WireNavigation()
@@ -229,6 +233,17 @@ public partial class MainForm : Form
             "Quản lý nội trú",
             "Theo dõi giường bệnh, hồ sơ điều trị và tình trạng khoa phòng.");
 
+        _btnNavScheduling.Text = "Lịch khám & Slot";
+        _btnNavScheduling.UseMnemonic = false;
+        _btnNavScheduling.Size = new Size(262, 51);
+        _btnNavScheduling.Location = new Point(9, 323);
+        _btnNavScheduling.Name = "btnNavScheduling";
+        _btnNavScheduling.Click += (_, _) => ShowScheduleSlotPage();
+        lblNavGroupParaclinical.Location = new Point(11, 382);
+        btnNavPharmacy.Location = new Point(9, 404);
+        btnNavReports.Location = new Point(9, 455);
+        navHost.Controls.Add(_btnNavScheduling);
+
         btnNavPharmacy.Click += (_, _) => ShowPlaceholder(
             "pharmacy",
             "Dược và kho thuốc",
@@ -246,6 +261,7 @@ public partial class MainForm : Form
         menuItemAdmin.Click += (_, _) => ShowAdminPage();
         _menuItemStaff.Click += (_, _) => ShowStaffPage();
         _menuItemDepartment.Click += (_, _) => ShowDepartmentPage();
+        _menuItemScheduling.Click += (_, _) => ShowScheduleSlotPage();
         btnSettings.Click += (_, _) => ShowAdminPage();
 
         btnHelp.Click += (_, _) => MessageBox.Show(
@@ -484,6 +500,24 @@ public partial class MainForm : Form
         ShowPage(new DepartmentPage(_departmentService));
     }
 
+    private void ShowScheduleSlotPage()
+    {
+        if (_schedulingService == null)
+        {
+            MessageBox.Show(
+                this,
+                "Trang lịch khám & slot cần kết nối cơ sở dữ liệu.",
+                "Lịch khám & Slot",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+            return;
+        }
+
+        SetActiveNav(_btnNavScheduling);
+        lblBreadcrumb.Text = "HIS   ›   Lịch khám && Khung giờ (Slot)";
+        ShowPage(new ScheduleSlotPage(_schedulingService, _departmentService));
+    }
+
     private void ShowPage(UserControl page)
     {
         contentHostPanel.SuspendLayout();
@@ -538,6 +572,7 @@ public partial class MainForm : Form
             btnNavPatients,
             btnNavExamination,
             btnNavInpatient,
+            _btnNavScheduling,
             btnNavPharmacy,
             btnNavReports
         };
@@ -555,6 +590,7 @@ public partial class MainForm : Form
         "patients" => btnNavPatients,
         "examination" => btnNavExamination,
         "inpatient" => btnNavInpatient,
+        "scheduling" => _btnNavScheduling,
         "pharmacy" => btnNavPharmacy,
         "reports" => btnNavReports,
         _ => null
