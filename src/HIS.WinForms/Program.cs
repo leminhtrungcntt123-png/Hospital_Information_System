@@ -19,6 +19,7 @@ static class Program
         var host = Host.CreateDefaultBuilder()
             .ConfigureAppConfiguration((context, config) =>
             {
+                config.SetBasePath(AppContext.BaseDirectory);
                 config.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
                 config.AddJsonFile("appsettings.Development.json", optional: true, reloadOnChange: true);
                 config.AddEnvironmentVariables();
@@ -46,6 +47,7 @@ static class Program
                 services.AddScoped<IStaffService, StaffService>();
                 services.AddScoped<IDepartmentService, DepartmentService>();
                 services.AddScoped<IAuthService, AuthService>();
+                services.AddScoped<ISchedulingService, SchedulingService>();
 
                 // Register Session & Forms
                 services.AddScoped<UserSession>();
