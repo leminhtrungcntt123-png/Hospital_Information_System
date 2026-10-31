@@ -48,7 +48,7 @@ public partial class MainForm : Form
     private static extern IntPtr SendMessage(IntPtr hWnd, int msg, int wParam, int lParam);
 
     // Constructor không tham số để Visual Studio Designer có thể mở form
-    public MainForm() : this(null!, null!, null!, null!, null!, null!, null!)
+    public MainForm() : this(null!, null!, null!, null!, null!, null!, null!, null!)
     {
     }
 
@@ -60,7 +60,8 @@ public partial class MainForm : Form
         IStaffService staffService,
         IDepartmentService departmentService,
         IAuthService authService,
-        UserSession session)
+        UserSession session,
+        ISchedulingService? schedulingService = null)
     {
         _bookingService = bookingService;
         _adminService = adminService;
@@ -69,6 +70,7 @@ public partial class MainForm : Form
         _departmentService = departmentService;
         _authService = authService;
         _session = session;
+        _schedulingService = schedulingService;
 
         InitializeComponent();
         DoubleBuffered = true;
@@ -236,12 +238,8 @@ public partial class MainForm : Form
         _btnNavScheduling.Text = "Lịch khám & Slot";
         _btnNavScheduling.UseMnemonic = false;
         _btnNavScheduling.Size = new Size(262, 51);
-        _btnNavScheduling.Location = new Point(9, 323);
         _btnNavScheduling.Name = "btnNavScheduling";
         _btnNavScheduling.Click += (_, _) => ShowScheduleSlotPage();
-        lblNavGroupParaclinical.Location = new Point(11, 382);
-        btnNavPharmacy.Location = new Point(9, 404);
-        btnNavReports.Location = new Point(9, 455);
         navHost.Controls.Add(_btnNavScheduling);
 
         btnNavPharmacy.Click += (_, _) => ShowPlaceholder(
@@ -619,11 +617,13 @@ public partial class MainForm : Form
         bool canInpatient = CanAccess(RolePermissions.Inpatient);
         bool canPharmacy = CanAccess(RolePermissions.Pharmacy);
         bool canReports = CanAccess(RolePermissions.Reports);
+        bool canScheduling = isAdmin || canReception || canExamination;
 
         btnMenuSystem.Visible = isAdmin;
         menuItemAdmin.Visible = isAdmin;
         _menuItemStaff.Visible = isAdmin;
         _menuItemDepartment.Visible = isAdmin;
+        _menuItemScheduling.Visible = isAdmin;
         btnSettings.Visible = isAdmin;
         btnHelp.Top = isAdmin ? 51 : 9;
 
@@ -636,7 +636,7 @@ public partial class MainForm : Form
         }
 
         LayoutMenuBar(isAdmin);
-        LayoutNavigation(canDashboard, canReception, canPatients, canExamination, canInpatient, canPharmacy, canReports);
+        LayoutNavigation(canDashboard, canReception, canPatients, canExamination, canInpatient, canScheduling, canPharmacy, canReports);
     }
 
     private void LayoutMenuBar(bool isAdmin)
@@ -661,6 +661,7 @@ public partial class MainForm : Form
         bool canPatients,
         bool canExamination,
         bool canInpatient,
+        bool canScheduling,
         bool canPharmacy,
         bool canReports)
     {
@@ -669,7 +670,7 @@ public partial class MainForm : Form
         y = PlaceNavLabel(lblNavGroupOverview, y, canDashboard);
         y = PlaceNavButton(btnNavDashboard, null, y, canDashboard);
 
-        bool clinicalVisible = canReception || canPatients || canExamination || canInpatient;
+        bool clinicalVisible = canReception || canPatients || canExamination || canInpatient || canScheduling;
 
         if (clinicalVisible)
         {
@@ -679,6 +680,7 @@ public partial class MainForm : Form
             y = PlaceNavButton(btnNavPatients, null, y, canPatients);
             y = PlaceNavButton(btnNavExamination, lblBadgeExamination, y, canExamination);
             y = PlaceNavButton(btnNavInpatient, null, y, canInpatient);
+            y = PlaceNavButton(_btnNavScheduling, null, y, canScheduling);
         }
         else
         {
@@ -687,6 +689,7 @@ public partial class MainForm : Form
             btnNavPatients.Visible = false;
             btnNavExamination.Visible = false;
             btnNavInpatient.Visible = false;
+            _btnNavScheduling.Visible = false;
             lblBadgeReception.Visible = false;
             lblBadgeExamination.Visible = false;
         }
