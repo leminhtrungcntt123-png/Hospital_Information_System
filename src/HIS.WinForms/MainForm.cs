@@ -88,7 +88,7 @@ public partial class MainForm : Form
         ApplySession();
         ApplyPermissions();
 
-        ShowDashboard();
+        NavigateDefaultLandingPage();
 
         if (LicenseManager.UsageMode == LicenseUsageMode.Runtime)
         {
@@ -637,6 +637,42 @@ public partial class MainForm : Form
 
         LayoutMenuBar(isAdmin);
         LayoutNavigation(canDashboard, canReception, canPatients, canExamination, canInpatient, canScheduling, canPharmacy, canReports);
+    }
+
+    /// <summary>
+    /// Tự động điều hướng màn hình khởi đầu theo vai trò đăng nhập (HIS-22)
+    /// </summary>
+    private void NavigateDefaultLandingPage()
+    {
+        string roleCode = _session?.RoleCode?.Trim().ToUpperInvariant() ?? string.Empty;
+
+        switch (roleCode)
+        {
+            case "RECEPTIONIST" when CanAccess(RolePermissions.Reception):
+                ShowReceptionPage();
+                break;
+            case "DOCTOR" when CanAccess(RolePermissions.Examination):
+                btnNavExamination.PerformClick();
+                break;
+            default:
+                if (CanAccess(RolePermissions.Dashboard))
+                {
+                    ShowDashboard();
+                }
+                else if (CanAccess(RolePermissions.Reception))
+                {
+                    ShowReceptionPage();
+                }
+                else if (CanAccess(RolePermissions.Examination))
+                {
+                    btnNavExamination.PerformClick();
+                }
+                else
+                {
+                    ShowDashboard();
+                }
+                break;
+        }
     }
 
     private void LayoutMenuBar(bool isAdmin)
