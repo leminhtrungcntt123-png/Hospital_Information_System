@@ -648,10 +648,10 @@ public partial class MainForm : Form
 
         switch (roleCode)
         {
-            case "RECEPTIONIST":
+            case "RECEPTIONIST" when CanAccess(RolePermissions.Reception):
                 ShowReceptionPage();
                 break;
-            case "DOCTOR":
+            case "DOCTOR" when CanAccess(RolePermissions.Examination):
                 btnNavExamination.PerformClick();
                 break;
             default:
