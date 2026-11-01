@@ -28,13 +28,9 @@ public class AuthService : IAuthService
             return LoginResult.Fail("Vui lòng nhập tên đăng nhập và mật khẩu.");
         }
 
-        // Tìm tài khoản theo username (hỗ trợ phân biệt hoặc không phân biệt hoa thường)
+        // Chỉ nạp Account và Role để xác thực, tuyệt đối không .Include các bảng nghiệp vụ khác (Doctor, Nurse, Patient...)
         Account? account = await _context.Accounts
             .Include(a => a.Role)
-            .Include(a => a.Doctor)
-            .Include(a => a.Nurse)
-            .Include(a => a.DepartmentHead)
-            .Include(a => a.Patient)
             .FirstOrDefaultAsync(a => a.Username == username || EF.Functions.ILike(a.Username, username), cancellationToken);
 
         if (account == null)
@@ -114,7 +110,7 @@ public class AuthService : IAuthService
 
         string roleCode = account.Role?.Code ?? string.Empty;
         string roleName = account.Role?.Name ?? string.Empty;
-        string displayName = ResolveDisplayName(account);
+        string displayName = await ResolveDisplayNameAsync(account, cancellationToken);
         IReadOnlyList<string> permissions = RolePermissions.For(roleCode);
 
         return LoginResult.Success(new AuthUserDto(
@@ -153,10 +149,26 @@ public class AuthService : IAuthService
         }
     }
 
-    private static string ResolveDisplayName(Account account) =>
-        account.Doctor?.FullName
-        ?? account.Nurse?.FullName
-        ?? account.DepartmentHead?.FullName
-        ?? account.Patient?.FullName
-        ?? account.Username;
+    private async Task<string> ResolveDisplayNameAsync(Account account, CancellationToken cancellationToken)
+    {
+        string roleCode = account.Role?.Code?.ToUpperInvariant() ?? string.Empty;
+
+        return roleCode switch
+        {
+            "ADMIN" => "Quản trị viên",
+            "DOCTOR" => await _context.Doctors
+                .Where(d => d.AccountId == account.Id)
+                .Select(d => d.FullName)
+                .FirstOrDefaultAsync(cancellationToken) ?? account.Username,
+            "NURSE" => await _context.Nurses
+                .Where(n => n.AccountId == account.Id)
+                .Select(n => n.FullName)
+                .FirstOrDefaultAsync(cancellationToken) ?? account.Username,
+            "DEPARTMENT_HEAD" => await _context.DepartmentHeads
+                .Where(dh => dh.AccountId == account.Id)
+                .Select(dh => dh.FullName)
+                .FirstOrDefaultAsync(cancellationToken) ?? account.Username,
+            _ => account.Username
+        };
+    }
 }
