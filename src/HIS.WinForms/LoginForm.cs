@@ -99,7 +99,7 @@ public partial class LoginForm : Form
     {
         _busy = busy;
         btnLogin.Enabled = !busy;
-        btnLogin.Text = busy ? "Đang xử lý..." : "Đăng nhập";
+        btnLogin.Text = busy ? "Đang xử lý..." : "ĐĂNG NHẬP VÀO HỆ THỐNG";
         Cursor = busy ? Cursors.WaitCursor : Cursors.Default;
     }
 
